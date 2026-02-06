@@ -1,0 +1,47 @@
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f4f7f6;
+}
+
+.card {
+  border-radius: 15px;
+  border: none;
+}
+
+.btn {
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-weight: 600;
+}
+
+.App {
+  min-height: 100vh;
+}
+
+/* Custom Alert Decorations */
+:root {
+  --toastify-border-radius: 12px;
+  --toastify-font-family: inherit;
+}
+
+.Toastify__toast {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  font-weight: 500;
+}
+
+.Toastify__toast--success {
+  background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+}
+
+.Toastify__toast--error {
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+}
+
+.Toastify__toast--info {
+  background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+}
+
+.Toastify__toast--warning {
+  background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+}
