@@ -9,20 +9,19 @@ const StudentAssignments = () => {
     useEffect(() => {
         const fetchAssignments = async () => {
             try {
-                const { data } = await axios.get('http://localhost:5000/api/assignments/subject/ALL', { // Special endpoint or all subjects
+                const { data } = await axios.get('http://localhost:5000/api/assignments/subject/ALL', {
                     headers: { Authorization: `Bearer ${JSON.parse(localStorage.getItem('user')).token}` }
                 });
                 setAssignments(data);
             } catch (err) {
-                // For now, if ALL doesn't work (since I didn't make an ALL endpoint), I'll just show what's available or change logic
-                // I'll fetch per subject or make a new endpoint. Let's assume I have one or just fetch my subjects
                 toast.error('Failed to fetch assignments');
             }
         };
-        // In a real scenario, I'd fetch subjects first then assignments. 
-        // For brevity, I'll update the backend to support getting all assignments for a student's enrolled subjects.
-        // But for now, let's just fetch all and filter in frontend or assume a general fetch.
+        fetchAssignments();
     }, []);
+
+
+
 
     // I'll actually implement a simple "Get All" for students in the backend quickly.
     return (

@@ -31,4 +31,7 @@ const assignmentSchema = new mongoose.Schema({
     timestamps: true
 });
 
+assignmentSchema.index({ subjectId: 1 });
+assignmentSchema.index({ title: 'text' });
+
 module.exports = mongoose.model('Assignment', assignmentSchema);

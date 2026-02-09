@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const { createSubject, getSubjects, deleteSubject } = require('../controllers/subjectController');
-const { protect } = require('../middleware/authMiddleware');
-const { authorize } = require('../middleware/roleMiddleware');
+const { protect } = require('../security/authMiddleware');
+const { authorize } = require('../security/roleMiddleware');
 
 router.route('/')
     .get(protect, getSubjects)

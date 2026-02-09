@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const { createAssignment, getAssignmentsBySubject, getMyAssignments } = require('../controllers/assignmentController');
-const { protect } = require('../middleware/authMiddleware');
-const { authorize } = require('../middleware/roleMiddleware');
+const { protect } = require('../security/authMiddleware');
+const { authorize } = require('../security/roleMiddleware');
 
 router.route('/')
     .post(protect, authorize('faculty'), createAssignment);

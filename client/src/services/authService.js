@@ -1,9 +1,7 @@
-import axios from 'axios';
-
-const API_URL = 'http://localhost:5000/api/auth';
+import api from '../utils/api';
 
 const login = async (email, password) => {
-    const response = await axios.post(`${API_URL}/admin/login`, { email, password });
+    const response = await api.post('/auth/admin/login', { email, password });
     if (response.data.token) {
         localStorage.setItem('user', JSON.stringify(response.data));
     }
@@ -25,3 +23,4 @@ const authService = {
 };
 
 export default authService;
+

@@ -2,9 +2,9 @@ const express = require('express');
 const router = express.Router();
 const { submitAssignment, getSubmissionsByAssignment, getMySubmissions } = require('../controllers/submissionController');
 const { evaluateSubmission } = require('../controllers/evaluationController');
-const { protect } = require('../middleware/authMiddleware');
-const { authorize } = require('../middleware/roleMiddleware');
-const upload = require('../middleware/uploadMiddleware');
+const { protect } = require('../security/authMiddleware');
+const { authorize } = require('../security/roleMiddleware');
+const upload = require('../security/uploadMiddleware');
 
 router.route('/')
     .post(protect, authorize('student'), upload.single('file'), submitAssignment);

@@ -1,5 +1,5 @@
-const Subject = require('../models/Subject');
-const User = require('../models/User');
+const Subject = require('../schemas/Subject');
+const User = require('../schemas/User');
 
 // @desc    Create a new subject
 // @route   POST /api/subjects

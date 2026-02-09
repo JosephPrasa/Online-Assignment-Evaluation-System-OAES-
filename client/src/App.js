@@ -2,14 +2,17 @@ import React from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import Navbar from './components/Navbar';
-import AppRoutes from './routes';
+import Sidebar from './components/Sidebar';
+import MainLayout from './components/MainLayout';
+import AppRoutes from './routes/routes';
 
 function App() {
   return (
     <Router>
       <div className="App">
-        <Navbar />
-        <AppRoutes />
+        <MainLayout>
+          <AppRoutes />
+        </MainLayout>
         <ToastContainer
           position="top-right"
           autoClose={3000}
@@ -21,6 +24,7 @@ function App() {
           draggable
           pauseOnHover
           theme="colored"
+          limit={1}
         />
       </div>
     </Router>

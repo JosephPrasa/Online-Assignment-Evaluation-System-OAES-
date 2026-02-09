@@ -1,5 +1,5 @@
-const User = require('../models/User');
-const generateToken = require('../utils/generateToken');
+const User = require('../schemas/User');
+const generateToken = require('../helpers/generateToken');
 
 // @desc    Auth admin & get token
 // @route   POST /api/auth/admin/login
@@ -40,7 +40,16 @@ const getMe = async (req, res) => {
     }
 };
 
+const googleAuthSuccess = (req, res) => {
+    const user = req.user;
+    const token = generateToken(user._id);
+
+    // Redirect to frontend with token and role in URL
+    res.redirect(`${process.env.FRONTEND_URL}/login-success?token=${token}&role=${user.role}`);
+};
+
 module.exports = {
     adminLogin,
-    getMe
+    getMe,
+    googleAuthSuccess
 };

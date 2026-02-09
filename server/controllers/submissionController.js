@@ -1,5 +1,5 @@
-const Submission = require('../models/Submission');
-const Assignment = require('../models/Assignment');
+const Submission = require('../schemas/Submission');
+const Assignment = require('../schemas/Assignment');
 
 // @desc    Submit an assignment
 // @route   POST /api/submissions

@@ -1,5 +1,5 @@
-const Assignment = require('../models/Assignment');
-const Subject = require('../models/Subject');
+const Assignment = require('../schemas/Assignment');
+const Subject = require('../schemas/Subject');
 
 // @desc    Create a new assignment
 // @route   POST /api/assignments
