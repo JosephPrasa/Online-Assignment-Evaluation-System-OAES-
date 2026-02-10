@@ -15,13 +15,22 @@ passport.use(new GoogleStrategy({
             return done(null, user);
         }
 
-        // If not, create a new user
-        // Note: You can decide the default role here. Defaulting to 'student'
+        // Check if email matches pattern: name.departmentYear@bitsathy.ac.in
+        const emailPattern = /^([a-zA-Z0-9]+)\.([a-zA-Z]+)(\d{2})@bitsathy\.ac\.in$/;
+        const match = profile.emails[0].value.match(emailPattern);
+
+        let department = null;
+        if (match) {
+            department = match[2].toUpperCase(); // 'ec' -> 'EC'
+        }
+
+        // Create new user (Student)
         user = await User.create({
             googleId: profile.id,
             name: profile.displayName,
             email: profile.emails[0].value,
-            role: 'student' // Default role for Google Sign-In
+            role: 'student',
+            department: department
         });
 
         done(null, user);

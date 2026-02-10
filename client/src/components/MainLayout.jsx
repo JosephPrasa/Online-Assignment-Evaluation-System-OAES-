@@ -9,8 +9,8 @@ const MainLayout = ({ children }) => {
     const user = authService.getCurrentUser();
 
     // Pages that shouldn't have the standard sidebar layout
-    const isAuthPage = location.pathname === '/login' || location.pathname === '/login-success';
-    const isLandingPage = location.pathname === '/';
+    const isAuthPage = location.pathname === '/login' || location.pathname === '/login-success' || location.pathname === '/';
+    const isLandingPage = location.pathname === '/landing';
 
     // We only show the sidebar if a user is logged in AND it's not a landing/auth page
     const showSidebar = user && !isAuthPage && !isLandingPage;

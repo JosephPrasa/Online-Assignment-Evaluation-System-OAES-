@@ -28,7 +28,12 @@ const createAssignment = async (req, res) => {
 // @route   GET /api/assignments/subject/:subjectId
 // @access  Private
 const getAssignmentsBySubject = async (req, res) => {
-    const assignments = await Assignment.find({ subjectId: req.params.subjectId })
+    let query = {};
+    if (req.params.subjectId !== 'ALL') {
+        query = { subjectId: req.params.subjectId };
+    }
+
+    const assignments = await Assignment.find(query)
         .populate('subjectId', 'subjectName subjectCode')
         .populate('createdBy', 'name');
     res.json(assignments);

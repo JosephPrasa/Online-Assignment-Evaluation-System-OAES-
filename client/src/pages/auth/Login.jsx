@@ -13,7 +13,25 @@ const Login = () => {
         window.location.href = 'http://localhost:5000/api/auth/google';
     };
 
-    const handleAdminLogin = async (e) => {
+    useEffect(() => {
+        // Check for error in URL (from Google Auth redirect)
+        const params = new URLSearchParams(window.location.search);
+        const error = params.get('error');
+        if (error === 'unregistered') {
+            toast.error('User not registered. Please contact Admin.', { toastId: 'auth-ung' });
+            // Clean URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
+        const user = authService.getCurrentUser();
+        if (user) {
+            if (user.role === 'admin') navigate('/admin/dashboard');
+            else if (user.role === 'faculty') navigate('/faculty/dashboard');
+            else if (user.role === 'student') navigate('/student/dashboard');
+        }
+    }, [navigate]);
+
+    const handleLogin = async (e) => {
         e.preventDefault();
         setLoading(true);
         try {
@@ -33,9 +51,9 @@ const Login = () => {
             <div className="card p-4 shadow-lg" style={{ width: '400px' }}>
                 <h2 className="text-center mb-4">Assignment Portal Login</h2>
 
-                <form onSubmit={handleAdminLogin}>
+                <form onSubmit={handleLogin}>
                     <div className="mb-3">
-                        <label className="form-label">Admin Email</label>
+                        <label className="form-label">Email</label>
                         <input
                             type="email"
                             className="form-control"
@@ -55,7 +73,7 @@ const Login = () => {
                         />
                     </div>
                     <button type="submit" className="btn btn-primary w-100 mb-3" disabled={loading}>
-                        {loading ? 'Logging in...' : 'Admin Login'}
+                        {loading ? 'Logging in...' : 'Login'}
                     </button>
                 </form>
 
