@@ -21,6 +21,8 @@ const submitAssignment = async (req, res) => {
         return res.status(400).json({ message: 'Assignment deadline has passed' });
     }
 
+
+
     const submission = await Submission.create({
         assignmentId,
         studentId: req.user._id,
