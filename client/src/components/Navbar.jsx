@@ -13,7 +13,7 @@ const Navbar = () => {
     };
 
     // Hide Navbar on Login page
-    if (location.pathname === '/login') return null;
+    if (location.pathname === '/login' || location.pathname === '/') return null;
 
     return (
         <nav className="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm py-3">
