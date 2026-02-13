@@ -2,6 +2,9 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const User = require('../schemas/User');
 
+const { findUserByEmail } = require('../helpers/userHelper');
+const StudentProfile = require('../schemas/student/StudentProfile');
+
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
@@ -9,42 +12,47 @@ passport.use(new GoogleStrategy({
 }, async (accessToken, refreshToken, profile, done) => {
     try {
         // Check if user already exists
-        let user = await User.findOne({ googleId: profile.id });
+        let user = await findUserByEmail(profile.emails[0].value);
 
         if (user) {
             return done(null, user);
         }
 
-        // Check if email matches pattern: name.departmentYear@bitsathy.ac.in
-        const emailPattern = /^([a-zA-Z0-9]+)\.([a-zA-Z]+)(\d{2})@bitsathy\.ac\.in$/;
-        const match = profile.emails[0].value.match(emailPattern);
+        // If not found, create a new StudentProfile
+        try {
+            const newUser = await StudentProfile.create({
+                name: profile.displayName,
+                email: profile.emails[0].value,
+                // Assign a dummy password hash as they login via Google.
+                // In a real app, you might flag this user as "google-auth-only" or handle empty passwords.
+                // For now, we'll hash a random string.
+                passwordHash: '$2a$10$DUMMYHASHFORGOOGLEUSER' + Date.now(),
+                // departmentId is optional now, so we can skip it.
+            });
 
-        let department = null;
-        if (match) {
-            department = match[2].toUpperCase(); // 'ec' -> 'EC'
+            // Return the new user with role 'student' attached (helper logic typically handles this, but here we return doc)
+            // The callback handler in authRoutes checks req.user later.
+            // But wait, passport needs the user object.
+            // We should return the user document.
+            // We can attach .role = 'student' to the object we pass to done, 
+            // but Mongoose documents are specific.
+            // Let's just return the newUser. 
+            // Our userHelper.findUserById adds the 'role' property manually.
+            // For the immediate callback, we might need it? 
+            // In authRoutes: googleAuthSuccess uses req.user._id and req.user.role.
+            // So we need to ensure req.user has role.
+
+            const userWithRole = { ...newUser.toObject(), role: 'student' };
+            return done(null, userWithRole);
+
+        } catch (err) {
+            console.error("Error creating Google user:", err);
+            return done(err, null);
         }
 
-        // Create new user (Student)
-        user = await User.create({
-            googleId: profile.id,
-            name: profile.displayName,
-            email: profile.emails[0].value,
-            role: 'student',
-            department: department
-        });
-
-        done(null, user);
     } catch (error) {
         done(error, null);
     }
 }));
 
-// We only need the strategy for JWT issuance, but Passport requires these to be defined if using session: false isn't enough
-passport.serializeUser((user, done) => {
-    done(null, user.id);
-});
 
-passport.deserializeUser(async (id, done) => {
-    const user = await User.findById(id);
-    done(null, user);
-});

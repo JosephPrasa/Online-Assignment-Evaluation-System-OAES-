@@ -9,6 +9,8 @@ const ManageSubjects = () => {
     const [name, setName] = useState('');
     const [code, setCode] = useState('');
     const [facultyId, setFacultyId] = useState('');
+    const [semester, setSemester] = useState('');
+    const [credits, setCredits] = useState('');
 
     const fetchData = async () => {
         const token = JSON.parse(localStorage.getItem('user')).token;
@@ -30,14 +32,21 @@ const ManageSubjects = () => {
     const handleAddSubject = async (e) => {
         e.preventDefault();
         try {
-            await axios.post('http://localhost:5000/api/subjects', { subjectName: name, subjectCode: code, facultyId }, {
+            await axios.post('http://localhost:5000/api/subjects', {
+                subjectName: name,
+                subjectCode: code,
+                facultyId,
+                semester,
+                credits
+            }, {
                 headers: { Authorization: `Bearer ${JSON.parse(localStorage.getItem('user')).token}` }
             });
             toast.success('Subject created');
-            setName(''); setCode(''); setFacultyId('');
+            setName(''); setCode(''); setFacultyId(''); setSemester(''); setCredits('');
             fetchData();
         } catch (err) {
-            toast.error(err.response?.data?.message || 'Failed to add subject');
+            console.error(err);
+            toast.error(err.response?.data?.message || err.message || 'Failed to add subject');
         }
     };
 
@@ -87,7 +96,13 @@ const ManageSubjects = () => {
                     <div className="col-md-3">
                         <input type="text" className="form-control" placeholder="Subject Code" value={code} onChange={(e) => setCode(e.target.value)} required />
                     </div>
-                    <div className="col-md-4">
+                    <div className="col-md-2">
+                        <input type="number" className="form-control" placeholder="Semester" value={semester} onChange={(e) => setSemester(e.target.value)} required />
+                    </div>
+                    <div className="col-md-2">
+                        <input type="number" className="form-control" placeholder="Credits" value={credits} onChange={(e) => setCredits(e.target.value)} required />
+                    </div>
+                    <div className="col-md-3">
                         <select className="form-select" value={facultyId} onChange={(e) => setFacultyId(e.target.value)} required>
                             <option value="">Select Faculty</option>
                             {faculties.map(f => (

@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const User = require('../schemas/User');
+const { findUserById } = require('../helpers/userHelper');
 
 const protect = async (req, res, next) => {
     let token;
@@ -12,9 +12,16 @@ const protect = async (req, res, next) => {
             // Verify token
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-            // Get user from token
-            req.user = await User.findById(decoded.id).select('-password');
+            // Get user from the token
+            // findUserById looks up in all 3 DBs
+            const user = await findUserById(decoded.id);
 
+            if (!user) {
+                console.warn(`Auth Middleware: User not found for ID ${decoded.id}`);
+                return res.status(401).json({ message: 'Not authorized, user not found' });
+            }
+
+            req.user = user;
             next();
         } catch (error) {
             console.error(error);

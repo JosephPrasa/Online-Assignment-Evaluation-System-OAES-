@@ -14,7 +14,8 @@ const StudentAssignments = () => {
                 });
                 setAssignments(data);
             } catch (err) {
-                toast.error('Failed to fetch assignments');
+                console.error(err);
+                toast.error(err.response?.data?.message || 'Failed to fetch assignments');
             }
         };
         fetchAssignments();
@@ -36,7 +37,7 @@ const StudentAssignments = () => {
                                 <p className="text-muted small mb-2">{a.subjectId?.subjectName}</p>
                                 <p className="card-text">{a.description}</p>
                                 <div className="d-flex justify-content-between align-items-center mt-3">
-                                    <span className="badge bg-warning text-dark">Due: {new Date(a.deadline).toLocaleString()}</span>
+                                    <span className="badge bg-warning text-dark">Due: {new Date(a.dueDate).toLocaleString()}</span>
                                     <Link to={`/student/submit/${a._id}`} className="btn btn-primary btn-sm">Submit Work</Link>
                                 </div>
                             </div>

@@ -7,8 +7,8 @@ const CreateAssignment = () => {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [subjectId, setSubjectId] = useState('');
-    const [deadline, setDeadline] = useState('');
-    const [totalMarks, setTotalMarks] = useState('');
+    const [dueDate, setDueDate] = useState('');
+    const [points, setPoints] = useState('');
 
     useEffect(() => {
         const fetchSubjects = async () => {
@@ -28,14 +28,15 @@ const CreateAssignment = () => {
         e.preventDefault();
         try {
             await axios.post('http://localhost:5000/api/assignments', {
-                title, description, subjectId, deadline, totalMarks
+                title, description, subjectId, dueDate, points
             }, {
                 headers: { Authorization: `Bearer ${JSON.parse(localStorage.getItem('user')).token}` }
             });
             toast.success('Assignment created!');
-            setTitle(''); setDescription(''); setSubjectId(''); setDeadline(''); setTotalMarks('');
+            setTitle(''); setDescription(''); setSubjectId(''); setDueDate(''); setPoints('');
         } catch (err) {
-            toast.error('Failed to create assignment');
+            console.error(err);
+            toast.error(err.response?.data?.message || 'Failed to create assignment');
         }
     };
 
@@ -63,12 +64,12 @@ const CreateAssignment = () => {
                     </div>
                     <div className="row">
                         <div className="col-md-6 mb-3">
-                            <label className="form-label">Deadline</label>
-                            <input type="datetime-local" className="form-control" value={deadline} onChange={(e) => setDeadline(e.target.value)} required />
+                            <label className="form-label">Due Date</label>
+                            <input type="datetime-local" className="form-control" value={dueDate} onChange={(e) => setDueDate(e.target.value)} required />
                         </div>
                         <div className="col-md-6 mb-3">
-                            <label className="form-label">Total Marks</label>
-                            <input type="number" className="form-control" value={totalMarks} onChange={(e) => setTotalMarks(e.target.value)} required />
+                            <label className="form-label">Points</label>
+                            <input type="number" className="form-control" value={points} onChange={(e) => setPoints(e.target.value)} required />
                         </div>
                     </div>
                     <button type="submit" className="btn btn-primary w-100 mt-3">Post Assignment</button>

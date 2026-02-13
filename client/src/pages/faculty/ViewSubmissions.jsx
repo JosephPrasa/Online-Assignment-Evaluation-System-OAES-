@@ -48,7 +48,7 @@ const ViewSubmissions = () => {
                             </td>
                             <td>{s.marks !== null ? s.marks : 'N/A'}</td>
                             <td>
-                                <a href={`https://docs.google.com/viewer?url=${encodeURIComponent(s.fileUrl)}&embedded=true`} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-outline-primary me-2">View File</a>
+                                <a href={s.fileUrl} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-outline-primary me-2">View File</a>
                                 <Link to={`/faculty/evaluate/${s._id}`} className="btn btn-sm btn-primary">Grade</Link>
                             </td>
                         </tr>

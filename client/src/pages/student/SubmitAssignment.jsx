@@ -18,8 +18,8 @@ const SubmitAssignment = () => {
         if (!file) return toast.warning('Please select a file');
 
         const formData = new FormData();
-        formData.append('file', file);
         formData.append('assignmentId', id);
+        formData.append('file', file);
 
         setUploading(true);
         try {

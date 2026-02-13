@@ -1,16 +1,12 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+dotenv.config();
 const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
-const connectDB = require('./setup/db');
-
-// Load environment variables
-dotenv.config();
-
-// Connect to Database
-connectDB();
+// Connect to Databases
+require('./setup/db');
 
 const app = express();
 const passport = require('passport');
