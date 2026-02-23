@@ -21,14 +21,7 @@ const subjectMasterSchema = new mongoose.Schema({
         ref: 'User'
     },
 
-    semester: {
-        type: Number,
-        required: true
-    },
-    credits: {
-        type: Number,
-        default: 0
-    }
+
 }, {
     timestamps: true
 });

@@ -38,6 +38,8 @@ const addUser = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
+    const logActivity = require('../utils/activityLogger');
+
     try {
         const user = await createUser({
             name,
@@ -46,6 +48,9 @@ const addUser = async (req, res) => {
             role: role || 'student',
             departmentId // Pass this if provided, strictly required for student/faculty
         });
+
+        // Log the activity
+        await logActivity('New user registered', req.user.name, user.name);
 
         res.status(201).json({
             _id: user._id,

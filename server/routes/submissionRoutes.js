@@ -9,6 +9,9 @@ const upload = require('../security/uploadMiddleware');
 router.route('/')
     .post(protect, authorize('student'), upload.single('file'), submitAssignment);
 
+router.route('/:id')
+    .get(protect, getSubmissionById);
+
 router.route('/:id/evaluate')
     .put(protect, authorize('faculty'), evaluateSubmission);
 

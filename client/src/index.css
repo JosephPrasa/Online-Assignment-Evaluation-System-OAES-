@@ -1,7 +1,17 @@
+:root {
+  --primary-color: #0d6efd;
+  --secondary-bg: #f8f9fa;
+  --sidebar-active-bg: #f0f7ff;
+  --sidebar-active-text: #0d6efd;
+  --text-muted: #6c757d;
+  --border-color: #eaedf0;
+}
+
 body {
   margin: 0;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #f4f7f6;
+  font-family: 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background-color: #f8f9fa;
+  color: #212529;
 }
 
 .card {
@@ -44,4 +54,111 @@ body {
 
 .Toastify__toast--warning {
   background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+}
+
+/* Custom UI Classes */
+.sidebar-link {
+  color: #4a5568;
+  font-weight: 500;
+  border-radius: 10px;
+  margin: 2px 0;
+  transition: all 0.2s ease;
+  padding: 10px 16px !important;
+}
+
+.sidebar-link:hover {
+  background-color: #f8f9fa;
+  color: #2d3748;
+}
+
+.sidebar-link.active {
+  background-color: var(--sidebar-active-bg) !important;
+  color: var(--sidebar-active-text) !important;
+}
+
+.sidebar-link.active i {
+  color: var(--sidebar-active-text) !important;
+}
+
+.sidebar-link i {
+  font-size: 1.2rem;
+  margin-right: 12px;
+  color: #718096;
+}
+
+.badge-admin {
+  background-color: #f3e8ff;
+  color: #7e22ce;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 6px;
+}
+
+.badge-faculty {
+  background-color: #e0f2fe;
+  color: #0369a1;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 6px;
+}
+
+.badge-student {
+  background-color: #dcfce7;
+  color: #15803d;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 6px;
+}
+
+.avatar-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: white;
+  background-color: var(--primary-color);
+}
+
+.table-modern thead th {
+  background-color: white;
+  color: #718096;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-bottom: 2px solid var(--border-color);
+  padding: 16px;
+}
+
+.table-modern tbody td {
+  padding: 16px;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.search-container {
+  position: relative;
+}
+
+.search-container i {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #a0aec0;
+}
+
+.search-container input {
+  padding-left: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+}
+
+.logout-btn:hover {
+  background-color: #f8f9fa;
+  color: #c82333 !important;
+  transform: scale(1.1);
 }

@@ -12,40 +12,54 @@ const Navbar = () => {
         navigate('/login');
     };
 
-    // Hide Navbar on Login page
     if (location.pathname === '/login' || location.pathname === '/') return null;
 
     return (
-        <nav className="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm py-3">
-            <div className="container">
-                <Link className="navbar-brand fw-bold d-flex align-items-center" to="/">
-                    <i className="bi bi-journal-text me-2"></i>
-                    Assignment Portal
-                </Link>
+        <nav className="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm py-2 sticky-top" style={{ height: '72px' }}>
+            <div className="container-fluid px-4">
+                <div className="d-flex align-items-center">
+                    <h5 className="mb-0 fw-bold text-primary">OAES</h5>
+                </div>
 
-                <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
-                    <span className="navbar-toggler-icon"></span>
-                </button>
+                <div className="ms-auto d-flex align-items-center">
+                    {user ? (
+                        <div className="d-flex align-items-center">
+                            {/* Profile Info */}
+                            <div className="text-end me-3">
+                                <h6 className="mb-0 fw-bold text-dark" style={{ fontSize: '1rem', letterSpacing: '-0.01em' }}>
+                                    {user.role === 'faculty' ? `Dr. ${user.name}` : user.name}
+                                </h6>
+                                <p className="mb-0 text-muted text-capitalize" style={{ fontSize: '0.85rem', fontWeight: '500' }}>
+                                    {user.role}
+                                </p>
+                            </div>
 
-                <div className="collapse navbar-collapse" id="navbarContent">
-                    <ul className="navbar-nav me-auto mb-2 mb-lg-0">
-                        {/* Navigation links moved to Sidebar */}
-                    </ul>
+                            {/* Avatar */}
+                            <div className="avatar-circle shadow-sm" style={{ width: '45px', height: '45px', fontSize: '1.2rem', backgroundColor: '#2563eb' }}>
+                                {(user.name || user.role || 'U').charAt(0).toUpperCase()}
+                            </div>
 
-                    <div className="d-flex align-items-center">
-                        {user ? (
-                            <>
-                                {user.role === 'admin' && (
-                                    <span className="text-light me-3 d-none d-sm-inline-block">
-                                        <small className="opacity-75">Logged as:</small> <strong>{user.name}</strong>
-                                    </span>
-                                )}
-                                <button onClick={handleLogout} className="btn btn-outline-danger btn-sm px-3">Logout</button>
-                            </>
-                        ) : (
-                            <Link to="/login" className="btn btn-primary btn-sm px-4">Login</Link>
-                        )}
-                    </div>
+                            {/* Logout - Red and Visible */}
+                            <button
+                                onClick={handleLogout}
+                                className="btn btn-link p-2 ms-3 logout-btn-red"
+                                title="Logout"
+                                style={{
+                                    fontSize: '1.6rem',
+                                    color: '#dc3545',
+                                    textDecoration: 'none',
+                                    transition: 'all 0.2s ease',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                }}
+                            >
+                                <i className="bi bi-box-arrow-right"></i>
+                            </button>
+                        </div>
+                    ) : (
+                        <Link to="/login" className="btn btn-primary btn-sm px-4">Login</Link>
+                    )}
                 </div>
             </div>
         </nav>
@@ -53,4 +67,3 @@ const Navbar = () => {
 };
 
 export default memo(Navbar);
-

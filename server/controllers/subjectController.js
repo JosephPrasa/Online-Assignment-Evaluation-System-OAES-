@@ -5,7 +5,7 @@ const Department = require('../schemas/admin/Department');
 // @route   POST /api/subjects
 // @access  Private/Admin
 const createSubject = async (req, res) => {
-    const { subjectName, subjectCode, departmentId, semester, credits, facultyId } = req.body;
+    const { subjectName, subjectCode, departmentId, facultyId } = req.body;
 
     const subjectExists = await SubjectMaster.findOne({ subjectCode });
 
@@ -21,14 +21,17 @@ const createSubject = async (req, res) => {
         }
     }
 
+    const logActivity = require('../utils/activityLogger');
+
     const subject = await SubjectMaster.create({
         subjectName,
         subjectCode,
         departmentId, // Can be null/undefined if not mandatory yet
-        semester,
-        credits,
         facultyId
     });
+
+    // Log the activity
+    await logActivity('Subject created', req.user.name, subjectName);
 
     res.status(201).json(subject);
 };

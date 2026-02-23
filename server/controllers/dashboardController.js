@@ -5,6 +5,8 @@ const SubjectMaster = require('../schemas/admin/SubjectMaster');
 const Assignment = require('../schemas/faculty/Assignment');
 const Submission = require('../schemas/student/Submission');
 
+const Activity = require('../schemas/admin/Activity');
+
 // @desc    Get Admin Dashboard Stats
 // @route   GET /api/dashboard/admin
 // @access  Private/Admin
@@ -19,6 +21,12 @@ const getAdminStats = async (req, res) => {
         const totalSubjects = await SubjectMaster.countDocuments();
         const totalAssignments = await Assignment.countDocuments();
         const totalSubmissions = await Submission.countDocuments();
+        const totalGraded = await Submission.countDocuments({ status: 'graded' });
+
+        // Fetch recent activities
+        const recentActivities = await Activity.find({})
+            .sort({ timestamp: -1 })
+            .limit(5);
 
         const stats = {
             users: {
@@ -31,7 +39,9 @@ const getAdminStats = async (req, res) => {
             },
             totalSubjects,
             totalAssignments,
-            totalSubmissions
+            totalSubmissions,
+            pendingEvaluations: totalSubmissions - totalGraded,
+            recentActivities // Add this to the response
         };
         console.log('Admin stats prepared:', stats);
 
@@ -52,8 +62,8 @@ const getFacultyStats = async (req, res) => {
         const totalAssignments = await Assignment.countDocuments({ facultyId });
 
         // Get all assignment IDs for this faculty to count submissions
-        const assignments = await Assignment.find({ facultyId }).select('_id');
-        const assignmentIds = assignments.map(a => a._id);
+        const assignmentsList = await Assignment.find({ facultyId }).select('_id');
+        const assignmentIds = assignmentsList.map(a => a._id);
 
         const totalSubmissions = await Submission.countDocuments({ assignmentId: { $in: assignmentIds } });
         const evaluatedSubmissions = await Submission.countDocuments({
@@ -61,11 +71,50 @@ const getFacultyStats = async (req, res) => {
             status: 'graded'
         });
 
+        // 1. Fetch 5 Recent Assignments with submission counts and subjects
+        const recentAssignmentsRaw = await Assignment.find({ facultyId })
+            .sort({ createdAt: -1 })
+            .limit(5);
+
+        // Populate subjects manually for recent assignments
+        const SubjectMaster = require('../schemas/admin/SubjectMaster');
+        const recentAssignments = await Promise.all(recentAssignmentsRaw.map(async (ass) => {
+            const subject = await SubjectMaster.findById(ass.subjectId);
+            const subCount = await Submission.countDocuments({ assignmentId: ass._id });
+            return {
+                ...ass.toObject(),
+                subjectName: subject ? subject.subjectName : 'Unknown',
+                submissionCount: subCount
+            };
+        }));
+
+        // 2. Fetch 5 Pending Evaluations (submissions that are 'submitted' but not 'graded')
+        const pendingEvaluationsListRaw = await Submission.find({
+            assignmentId: { $in: assignmentIds },
+            status: 'submitted'
+        })
+            .sort({ submittedAt: -1 })
+            .limit(5);
+
+        // Populate for pending evaluations
+        const StudentProfile = require('../schemas/student/StudentProfile');
+        const pendingEvaluationsData = await Promise.all(pendingEvaluationsListRaw.map(async (sub) => {
+            const student = await StudentProfile.findOne({ userId: sub.studentId });
+            const assignment = await Assignment.findById(sub.assignmentId);
+            return {
+                ...sub.toObject(),
+                studentName: student ? student.name : 'Unknown Student',
+                assignmentTitle: assignment ? assignment.title : 'Unknown Assignment'
+            };
+        }));
+
         res.status(200).json({
             totalAssignments,
             totalSubmissions,
             evaluatedSubmissions,
-            pendingEvaluations: totalSubmissions - evaluatedSubmissions
+            pendingEvaluations: totalSubmissions - evaluatedSubmissions,
+            recentAssignments,
+            pendingEvaluationsData: pendingEvaluationsData
         });
     } catch (error) {
         console.error('Error in getFacultyStats:', error);

@@ -24,12 +24,17 @@ const submitAssignment = async (req, res) => {
         return res.status(400).json({ message: 'Assignment deadline has passed' });
     }
 
+    const logActivity = require('../utils/activityLogger');
+
     const submission = await Submission.create({
         assignmentId,
         studentId: req.user._id,
         fileUrl: req.file.path,
         status: 'submitted'
     });
+
+    // Log the activity
+    await logActivity('Assignment submitted', req.user.name, assignment.title);
 
     res.status(201).json(submission);
 };
@@ -107,8 +112,36 @@ const getMySubmissions = async (req, res) => {
     res.json(populatedSubmissions);
 };
 
+// @desc    Get single submission by ID
+// @route   GET /api/submissions/:id
+// @access  Private
+const getSubmissionById = async (req, res) => {
+    try {
+        const submission = await Submission.findById(req.params.id);
+        if (!submission) {
+            return res.status(404).json({ message: 'Submission not found' });
+        }
+
+        // Manual population
+        const StudentProfile = require('../schemas/student/StudentProfile');
+        const Assignment = require('../schemas/faculty/Assignment');
+
+        const student = await StudentProfile.findOne({ userId: submission.studentId }).select('name email');
+        const assignment = await Assignment.findById(submission.assignmentId).select('title points');
+
+        res.json({
+            ...submission.toObject(),
+            studentId: student || { name: 'Unknown' },
+            assignmentId: assignment || { title: 'Unknown', points: 0 }
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     submitAssignment,
     getSubmissionsByAssignment,
-    getMySubmissions
+    getMySubmissions,
+    getSubmissionById
 };
