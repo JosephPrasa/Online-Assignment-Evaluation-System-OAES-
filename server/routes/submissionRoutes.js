@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { submitAssignment, getSubmissionsByAssignment, getMySubmissions } = require('../controllers/submissionController');
+const { submitAssignment, getSubmissionsByAssignment, getMySubmissions, getSubmissionById } = require('../controllers/submissionController');
 const { evaluateSubmission } = require('../controllers/evaluationController');
 const { protect } = require('../security/authMiddleware');
 const { authorize } = require('../security/roleMiddleware');

@@ -30,20 +30,23 @@ const Sidebar = () => {
     const isActive = (path) => location.pathname === path;
 
     return (
-        <div className="d-flex flex-column flex-shrink-0 p-3 bg-white border-end shadow-sm" style={{ width: '260px', minHeight: 'calc(100vh - 72px)', position: 'sticky', top: '72px' }}>
+        <div className="d-none d-lg-flex flex-column flex-shrink-0 p-3 bg-white border-end" style={{ width: '270px', minHeight: 'calc(100vh - 72px)', position: 'sticky', top: '72px', zIndex: 1030 }}>
             <ul className="nav nav-pills flex-column mb-auto">
                 {currentNavItems.map((item) => (
-                    <li key={item.path} className="nav-item mb-1">
+                    <li key={item.path} className="nav-item mb-2">
                         <Link
                             to={item.path}
-                            className={`nav-link d-flex align-items-center sidebar-link ${isActive(item.path) ? 'active' : ''}`}
+                            className={`nav-link d-flex align-items-center sidebar-link ${isActive(item.path) ? 'active shadow-sm' : ''}`}
                         >
-                            <i className={`bi ${item.icon}`}></i>
-                            <span>{item.label}</span>
+                            <i className={`bi ${item.icon} me-3`}></i>
+                            <span className="fw-semibold">{item.label}</span>
                         </Link>
                     </li>
                 ))}
             </ul>
+            <div className="mt-auto p-3 text-center">
+                <small className="text-muted fw-bold" style={{ fontSize: '0.65rem', letterSpacing: '0.1em' }}>OAES v1.0.0</small>
+            </div>
         </div>
     );
 };

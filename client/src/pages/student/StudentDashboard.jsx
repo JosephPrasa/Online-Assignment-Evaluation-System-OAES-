@@ -33,15 +33,15 @@ const StudentDashboard = () => {
 
     if (!stats) return (
         <div className="container mt-5">
-            <div className="alert alert-danger" role="alert">
+            <div className="alert alert-danger shadow-sm border-0" role="alert">
                 Error loading student statistics. Please try again later.
             </div>
         </div>
     );
 
     const pieData = [
-        { name: 'Completed', value: stats.totalSubmissions || 0, color: '#10b981' },
-        { name: 'Graded', value: stats.gradedSubmissions || 0, color: '#0d6efd' },
+        { name: 'Submitted', value: stats.totalSubmissions || 0, color: '#2563eb' },
+        { name: 'Pending', value: stats.pendingAssignments || 0, color: '#cbd5e1' },
     ];
 
     const gradingRate = stats.totalSubmissions > 0
@@ -49,22 +49,22 @@ const StudentDashboard = () => {
         : 0;
 
     return (
-        <div className="student-dashboard-container">
+        <div className="student-dashboard-container animate__animated animate__fadeIn">
             <div className="mb-4">
-                <h2 className="fw-bold mb-0">Student Dashboard</h2>
-                <p className="text-muted">Track your academic progress and assignment submissions</p>
+                <h2 className="fw-bold mb-1 text-dark">Welcome back!</h2>
+                <p className="text-muted small fw-medium">Here's an overview of your academic progress and pending tasks.</p>
             </div>
 
             <div className="row g-4 mb-5">
                 <DashboardCard
-                    title="My Submissions"
+                    title="Total Submissions"
                     value={stats.totalSubmissions}
-                    icon="bi-send-fill"
-                    color="#0d6efd"
-                    bgColor="#f0f7ff"
+                    icon="bi-send-check-fill"
+                    color="#2563eb"
+                    bgColor="#eff6ff"
                 />
                 <DashboardCard
-                    title="Graded Assignments"
+                    title="Graded"
                     value={stats.gradedSubmissions}
                     icon="bi-journal-check"
                     color="#10b981"
@@ -73,7 +73,7 @@ const StudentDashboard = () => {
                 <DashboardCard
                     title="Pending Tasks"
                     value={stats.pendingAssignments || 0}
-                    icon="bi-clock-fill"
+                    icon="bi-calendar-event-fill"
                     color="#f59e0b"
                     bgColor="#fffbeb"
                 />
@@ -81,21 +81,18 @@ const StudentDashboard = () => {
 
             <div className="row g-4">
                 <div className="col-lg-6">
-                    <div className="card border-0 shadow-sm p-4 h-100" style={{ borderRadius: '16px' }}>
-                        <h5 className="fw-bold mb-4 d-flex align-items-center">
-                            <i className="bi bi-bullseye me-2 text-primary"></i>
-                            Overview
-                        </h5>
-                        <div style={{ width: '100%', height: 300 }}>
+                    <div className="card border-0 shadow-sm p-4 h-100">
+                        <h6 className="fw-bold mb-4">Submission Progress</h6>
+                        <div style={{ width: '100%', height: 280 }}>
                             <ResponsiveContainer>
                                 <PieChart>
                                     <Pie
                                         data={pieData}
                                         cx="50%"
                                         cy="50%"
-                                        innerRadius={70}
-                                        outerRadius={90}
-                                        paddingAngle={8}
+                                        innerRadius={65}
+                                        outerRadius={85}
+                                        paddingAngle={5}
                                         dataKey="value"
                                         stroke="none"
                                     >
@@ -114,30 +111,17 @@ const StudentDashboard = () => {
                 </div>
 
                 <div className="col-lg-6">
-                    <div className="card border-0 shadow-sm p-4 h-100" style={{ borderRadius: '16px' }}>
-                        <h5 className="fw-bold mb-4 d-flex align-items-center">
-                            <i className="bi bi-graph-up-arrow me-2 text-primary"></i>
-                            Academic Performance
-                        </h5>
+                    <div className="card border-0 shadow-sm p-4 h-100">
+                        <h6 className="fw-bold mb-4">Academic Insights</h6>
 
-                        <div className="mb-4 p-3 bg-light rounded-4">
+                        <div className="mb-4 p-3 rounded-4" style={{ backgroundColor: '#f8fafc' }}>
                             <div className="d-flex justify-content-between align-items-center mb-2">
-                                <span className="small fw-bold text-uppercase text-muted">Submission Rate</span>
-                                <span className="fw-bold text-primary">100%</span>
+                                <span className="small fw-bold text-uppercase text-muted" style={{ fontSize: '0.65rem' }}>Grading Completion</span>
+                                <span className="fw-bold text-primary">{gradingRate}%</span>
                             </div>
-                            <div className="progress rounded-pill" style={{ height: '8px' }}>
-                                <div className="progress-bar bg-primary" role="progressbar" style={{ width: '100%' }} aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
-                            </div>
-                        </div>
-
-                        <div className="mb-4 p-3 bg-light rounded-4">
-                            <div className="d-flex justify-content-between align-items-center mb-2">
-                                <span className="small fw-bold text-uppercase text-muted">Grading Progress</span>
-                                <span className="fw-bold text-success">{gradingRate}%</span>
-                            </div>
-                            <div className="progress rounded-pill" style={{ height: '8px' }}>
+                            <div className="progress rounded-pill" style={{ height: '6px' }}>
                                 <div
-                                    className="progress-bar bg-success"
+                                    className="progress-bar bg-primary"
                                     role="progressbar"
                                     style={{ width: `${gradingRate}%` }}
                                     aria-valuenow={gradingRate}
@@ -147,11 +131,17 @@ const StudentDashboard = () => {
                             </div>
                         </div>
 
-                        <div className="mt-auto pt-3">
-                            <p className="small text-muted mb-0">
-                                <i className="bi bi-info-circle me-1"></i>
-                                Keeping your submission rate at 100% is excellent! Focus on reviewing graded feedback for continuous improvement.
-                            </p>
+                        <div className="mt-auto p-4 rounded-4 border bg-gradient text-dark" style={{ backgroundColor: '#f0f9ff', borderColor: '#bae6fd' }}>
+                            <div className="d-flex align-items-start">
+                                <i className="bi bi-lightbulb-fill text-warning me-3 fs-3"></i>
+                                <div>
+                                    <p className="small mb-0">
+                                        <strong>Tip:</strong> {stats.pendingAssignments > 0
+                                            ? `You have ${stats.pendingAssignments} tasks pending. Try to complete them before the deadline to maintain your score!`
+                                            : "Great job! You've submitted all currently available assignments. Take some time to review your feedback."}
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

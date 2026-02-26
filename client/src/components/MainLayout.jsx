@@ -16,22 +16,30 @@ const MainLayout = ({ children }) => {
     const showSidebar = user && !isAuthPage && !isLandingPage;
 
     return (
-        <div className="d-flex flex-column" style={{ minHeight: '100vh' }}>
+        <div className="d-flex flex-column" style={{ minHeight: '100vh', backgroundColor: 'var(--secondary-bg)' }}>
             <Navbar />
-            <div className="d-flex flex-grow-1">
+            <div className="d-flex flex-grow-1 overflow-hidden">
                 {showSidebar && <Sidebar />}
-                <main className="flex-grow-1 overflow-auto p-4 bg-light">
-                    {children}
+                <main className="flex-grow-1 overflow-auto p-4 p-md-5">
+                    <div className="container-fluid p-0">
+                        {children}
+                    </div>
                 </main>
             </div>
-            {/* Global Styles */}
+
             <style>{`
-                body {
-                    overflow-x: hidden;
-                    background-color: #f8f9fa;
+                main::-webkit-scrollbar {
+                    width: 6px;
                 }
-                .bg-light {
-                    background-color: #f8f9fa !important;
+                main::-webkit-scrollbar-track {
+                    background: transparent;
+                }
+                main::-webkit-scrollbar-thumb {
+                    background: #cbd5e1;
+                    border-radius: 10px;
+                }
+                main::-webkit-scrollbar-thumb:hover {
+                    background: #94a3b8;
                 }
             `}</style>
         </div>

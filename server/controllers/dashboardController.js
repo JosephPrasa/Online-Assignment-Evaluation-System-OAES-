@@ -135,10 +135,33 @@ const getStudentStats = async (req, res) => {
             status: 'graded'
         });
 
+        // Get student's department to find relevant assignments
+        const studentProfile = await StudentProfile.findOne({ userId: studentId });
+        let pendingAssignments = 0;
+
+        if (studentProfile && studentProfile.departmentId) {
+            // Find subjects in student's department
+            const deptSubjects = await SubjectMaster.find({
+                departmentId: studentProfile.departmentId
+            }).select('_id');
+
+            const deptSubjectIds = deptSubjects.map(s => s._id);
+
+            // Get IDs of assignments already submitted
+            const submittedAssignmentIds = await Submission.find({ studentId }).distinct('assignmentId');
+
+            // Pending = Assignments in Dept Subjects - Already Submitted (that are still open)
+            pendingAssignments = await Assignment.countDocuments({
+                subjectId: { $in: deptSubjectIds },
+                _id: { $nin: submittedAssignmentIds },
+                dueDate: { $gte: new Date() } // Only count if not yet due
+            });
+        }
+
         res.status(200).json({
             totalSubmissions,
             gradedSubmissions,
-            pendingAssignments: 0, // Placeholder
+            pendingAssignments,
         });
     } catch (error) {
         console.error('Error in getStudentStats:', error);
