@@ -98,7 +98,7 @@ body {
 [class^="badge-"] {
   font-weight: 600;
   padding: 6px 12px;
-  border-radius: 8px;
+  border-radius: 100px;
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.025em;
@@ -122,17 +122,17 @@ body {
 /* Modern Table */
 .table-modern thead th {
   background-color: #f8fafc;
-  color: #64748b;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
+  color: #475569;
+  font-size: 0.825rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
   text-transform: uppercase;
   border-bottom: 1px solid var(--border-color);
-  padding: 16px;
+  padding: 16px 24px;
 }
 
 .table-modern tbody td {
-  padding: 16px;
+  padding: 16px 24px;
   vertical-align: middle;
   border-bottom: 1px solid var(--border-color);
   transition: var(--transition);
@@ -170,6 +170,9 @@ body {
   font-weight: 700;
   overflow: hidden;
   border: 2px solid white;
+  border-radius: 50%;
+  background-color: #2563eb;
+  color: white;
 }
 
 /* Transitions */
@@ -179,4 +182,378 @@ body {
 
 .transition-hover:hover {
   transform: translateY(-2px);
+}
+
+/* Search Container Styling */
+.search-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-container i {
+  position: absolute;
+  left: 16px;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.search-container .form-control {
+  padding-left: 48px !important;
+  height: 48px !important;
+  border-radius: 12px !important;
+  border: 1px solid var(--border-color) !important;
+  background-color: white !important;
+  box-shadow: var(--card-shadow) !important;
+  transition: var(--transition);
+}
+
+.search-container .form-control:focus {
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1) !important;
+  border-color: var(--primary-color) !important;
+}
+
+/* Minimalistic Professional Modal & Form Styling */
+.custom-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 16px;
+}
+
+.modal-content-premium {
+  background-color: #ffffff;
+  border-radius: 16px;
+  /* Slightly more conservative radius */
+  width: 100%;
+  max-width: 420px;
+  /* Reduced width */
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  border: 1px solid #edf2f7;
+  overflow: hidden;
+  position: relative;
+}
+
+.modal-header-premium {
+  padding: 24px 28px 16px;
+  /* Compact padding */
+  background: #ffffff;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.modal-body-premium {
+  padding: 24px 28px;
+  /* Compact padding */
+}
+
+.modal-footer-premium {
+  padding: 16px 28px 24px;
+  /* Compact padding */
+  background-color: #ffffff;
+  border-top: none;
+  /* Removed line for cleaner look */
+  display: flex;
+  gap: 12px;
+}
+
+.input-group-premium {
+  margin-bottom: 20px;
+  /* Reduced spacing */
+}
+
+.input-wrapper-premium {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-wrapper-premium i {
+  position: absolute;
+  left: 14px;
+  /* Tighter icon */
+  color: #94a3b8;
+  font-size: 1.15rem;
+  transition: var(--transition);
+  z-index: 5;
+}
+
+.input-wrapper-premium .form-control,
+.input-wrapper-premium .form-select {
+  padding-left: 44px;
+  /* Tighter padding */
+  height: 48px;
+  /* Reduced height */
+  border-radius: 12px;
+  /* Tighter radius */
+  border: 1.5px solid #e2e8f0;
+  background-color: #ffffff;
+  font-weight: 500;
+  color: var(--text-main);
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+  /* Slightly smaller font */
+}
+
+.input-wrapper-premium .form-control::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.input-wrapper-premium .form-control:focus,
+.input-wrapper-premium .form-select:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
+  outline: none;
+}
+
+.input-wrapper-premium .form-control:focus+i,
+.input-wrapper-premium .form-select:focus+i {
+  color: var(--primary-color);
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 14px;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+  z-index: 6;
+}
+
+.password-toggle-btn:hover {
+  color: var(--primary-color);
+}
+
+.password-toggle-btn i {
+  position: static !important;
+  font-size: 1.1rem !important;
+}
+
+.input-label-premium {
+  display: block;
+  font-size: 0.75rem;
+  /* Smaller label */
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 6px;
+  letter-spacing: 0.01em;
+}
+
+.btn-premium-primary {
+  height: 44px;
+  /* Reduced height */
+  border-radius: 12px;
+  font-weight: 600;
+  padding: 0 20px;
+  background: var(--primary-color);
+  border: none;
+  color: white;
+  transition: var(--transition);
+  font-size: 0.9rem;
+}
+
+/* ==========================================================================
+   REPORTS & ANALYTICS: ADMIN INTELLIGENCE DASHBOARD (OAES)
+   ========================================================================== */
+
+.dashboard-analytics-root {
+  background-color: #f8fafc;
+  /* Porcelain */
+  min-height: calc(100vh - 80px);
+  padding: 2.5rem;
+  color: #1e293b;
+  /* Slate 900 */
+}
+
+/* Dashboard Toolbar */
+.dashboard-toolbar {
+  background: #fff;
+  padding: 1.5rem 2rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Analytics Modular Surfaces */
+.analytics-surface {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.75rem;
+  height: 100%;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.analytics-surface:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+}
+
+.chart-container {
+  width: 100%;
+  height: 300px;
+  margin-top: 1.5rem;
+}
+
+/* Metric Pill Architecture */
+.metric-pill-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.metric-pill {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.35rem 0.75rem;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.metric-pill-primary {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.metric-pill-success {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.metric-pill-warning {
+  background: #fffbeb;
+  color: #d97706;
+}
+
+/* Large Metric Value */
+.metric-value-admin {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #1e293b;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  margin: 1rem 0 0.5rem 0;
+}
+
+.metric-label-admin {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+/* Data Table Mini */
+.mini-table th {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.mini-table td {
+  padding: 1rem 0;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #334155;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.mini-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* System Indicators */
+.status-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 8px;
+}
+
+.pulse-emerald {
+  background: #10b981;
+  box-shadow: 0 0 0 rgba(16, 185, 129, 0.4);
+  animation: statusPulse 2s infinite;
+}
+
+@keyframes statusPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+  }
+
+  70% {
+    box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+.spatial-gauge-track {
+  height: 2px;
+  background: #eee;
+  margin-top: 1rem;
+}
+
+.spatial-gauge-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: #2d3436;
+  transition: width 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.spatial-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 2rem;
+}
+
+.btn-premium-primary:hover {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+}
+
+.btn-premium-secondary {
+  height: 44px;
+  /* Reduced height */
+  border-radius: 12px;
+  font-weight: 600;
+  padding: 0 20px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  transition: var(--transition);
+  font-size: 0.9rem;
 }

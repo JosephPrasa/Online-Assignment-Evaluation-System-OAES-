@@ -1,68 +1,75 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { createPortal } from 'react-dom';
+import api from '../../utils/api';
 import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
+import socket, { connectSocket, disconnectSocket } from '../../utils/socket';
 
 const ManageSubjects = () => {
     const [subjects, setSubjects] = useState([]);
     const [filteredSubjects, setFilteredSubjects] = useState([]);
-    const [faculties, setFaculties] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
-    const [facultyFilter, setFacultyFilter] = useState('All Faculties');
+    const [faculties, setFaculties] = useState([]);
 
     // Form state
     const [name, setName] = useState('');
     const [code, setCode] = useState('');
-    const [facultyId, setFacultyId] = useState('');
+    const [selectedFacultyId, setSelectedFacultyId] = useState('');
     const [showAddModal, setShowAddModal] = useState(false);
 
     const fetchData = async () => {
-        const user = JSON.parse(localStorage.getItem('user'));
-        if (!user || !user.token) return;
-
-        const config = { headers: { Authorization: `Bearer ${user.token}` } };
         try {
-            const resSubs = await axios.get('http://localhost:5000/api/subjects', config);
-            const resUsers = await axios.get('http://localhost:5000/api/users', config);
+            const [subjectsRes, usersRes] = await Promise.all([
+                api.get('/subjects'),
+                api.get('/users')
+            ]);
+            setSubjects(subjectsRes.data);
+            setFilteredSubjects(subjectsRes.data);
 
-            setSubjects(resSubs.data);
-            setFilteredSubjects(resSubs.data);
-            setFaculties(resUsers.data.filter(u => u.role === 'faculty'));
+            // Filter only faculty members
+            const facultyList = usersRes.data.filter(u => u.role === 'faculty');
+            setFaculties(facultyList);
         } catch (err) {
-            toast.error('Failed to fetch data');
+            toast.error('Failed to fetch required data');
         }
     };
 
     useEffect(() => {
         fetchData();
+        connectSocket();
+
+        socket.on('subject_added', fetchData);
+        socket.on('subject_deleted', fetchData);
+
+        return () => {
+            socket.off('subject_added');
+            socket.off('subject_deleted');
+            disconnectSocket();
+        };
     }, []);
 
     useEffect(() => {
         let results = subjects;
         if (searchTerm) {
+            const lowerSearch = searchTerm.toLowerCase();
             results = results.filter(s =>
-                s.subjectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                s.subjectCode.toLowerCase().includes(searchTerm.toLowerCase())
+                (s.subjectName && s.subjectName.toLowerCase().includes(lowerSearch)) ||
+                (s.subjectCode && s.subjectCode.toLowerCase().includes(lowerSearch))
             );
         }
-        if (facultyFilter !== 'All Faculties') {
-            results = results.filter(s => s.facultyId?.name === facultyFilter);
-        }
         setFilteredSubjects(results);
-    }, [searchTerm, facultyFilter, subjects]);
+    }, [searchTerm, subjects]);
 
     const handleAddSubject = async (e) => {
         e.preventDefault();
         try {
-            await axios.post('http://localhost:5000/api/subjects', {
+            await api.post('/subjects', {
                 subjectName: name,
                 subjectCode: code,
-                facultyId,
-            }, {
-                headers: { Authorization: `Bearer ${JSON.parse(localStorage.getItem('user')).token}` }
+                facultyId: selectedFacultyId || null
             });
-            toast.success('Subject created');
-            setName(''); setCode(''); setFacultyId('');
+            toast.success('Subject created successfully');
+            setName(''); setCode(''); setSelectedFacultyId('');
             setShowAddModal(false);
             fetchData();
         } catch (err) {
@@ -83,150 +90,195 @@ const ManageSubjects = () => {
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
-                    await axios.delete(`http://localhost:5000/api/subjects/${id}`, {
-                        headers: { Authorization: `Bearer ${JSON.parse(localStorage.getItem('user')).token}` }
-                    });
+                    await api.delete(`/subjects/${id}`);
                     Swal.fire({ title: 'Deleted!', icon: 'success', timer: 1500, showConfirmButton: false });
                     fetchData();
                 } catch (err) {
-                    toast.error('Failed to delete');
+                    toast.error('Failed to delete subject');
                 }
             }
         });
     };
 
     return (
-        <div className="manage-subjects-container">
-            <div className="d-flex justify-content-between align-items-center mb-1">
+        <div className="container-fluid py-4 animate__animated animate__fadeIn">
+            {/* Header Section */}
+            <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
-                    <h2 className="fw-bold mb-0">Manage Subjects</h2>
-                    <p className="text-muted">Configure and assign subject modules</p>
-                </div>
-            </div>
-
-            <div className="d-flex gap-3 mb-4 mt-3">
-                <div className="search-container flex-grow-1">
-                    <i className="bi bi-search"></i>
-                    <input
-                        type="text"
-                        className="form-control"
-                        placeholder="Search by code or name..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
-                <div style={{ width: '220px' }}>
-                    <select
-                        className="form-select border-0 shadow-sm"
-                        style={{ borderRadius: '10px', height: '100%' }}
-                        value={facultyFilter}
-                        onChange={(e) => setFacultyFilter(e.target.value)}
-                    >
-                        <option>All Faculties</option>
-                        {faculties.map(f => (
-                            <option key={f._id} value={f.name}>{f.name}</option>
-                        ))}
-                    </select>
+                    <h2 className="fw-bold text-dark mb-1">Manage Subjects</h2>
+                    <p className="text-secondary mb-0">Configure and organize academic modules</p>
                 </div>
                 <button
-                    className="btn btn-primary d-flex align-items-center px-4"
-                    style={{ borderRadius: '10px' }}
+                    className="btn btn-primary d-flex align-items-center gap-2 shadow-sm transition-hover"
                     onClick={() => setShowAddModal(true)}
+                    style={{ height: '48px', borderRadius: '12px' }}
                 >
-                    <i className="bi bi-journal-plus me-2 fs-5"></i>
+                    <i className="bi bi-journal-plus"></i>
                     Add Subject
                 </button>
             </div>
 
-            <div className="card shadow-sm border-0 overflow-hidden" style={{ borderRadius: '12px' }}>
+            {/* Filter Section */}
+            <div className="card border-0 shadow-sm mb-4" style={{ borderRadius: '16px' }}>
+                <div className="card-body p-3">
+                    <div className="row g-3">
+                        <div className="col-12">
+                            <div className="search-container">
+                                <i className="bi bi-search"></i>
+                                <input
+                                    type="text"
+                                    className="form-control"
+                                    placeholder="Search by subject name or course code..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Subject List Table */}
+            <div className="card border-0 shadow-sm overflow-hidden" style={{ borderRadius: '16px' }}>
                 <div className="table-responsive">
-                    <table className="table table-hover table-modern mb-0">
+                    <table className="table table-modern mb-0">
                         <thead>
                             <tr>
-                                <th>Code</th>
-                                <th>Name</th>
-                                <th>Assigned Faculty</th>
+                                <th className="ps-4">Subject Name</th>
+                                <th className="text-center">Code</th>
+                                <th className="text-center">Assigned Faculty</th>
                                 <th className="text-end pe-4">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredSubjects.map(s => (
-                                <tr key={s._id}>
-                                    <td>
-                                        <span className="badge bg-light text-primary fw-bold" style={{ fontSize: '0.85rem', padding: '6px 10px' }}>
-                                            {s.subjectCode}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div className="d-flex align-items-center">
-                                            <div className="bg-primary bg-opacity-10 text-primary rounded-3 d-flex align-items-center justify-content-center me-3" style={{ width: '36px', height: '36px' }}>
-                                                <i className="bi bi-book-half"></i>
-                                            </div>
-                                            <span className="fw-bold">{s.subjectName}</span>
+                            {filteredSubjects.length > 0 ? (
+                                filteredSubjects.map((s) => (
+                                    <tr key={s._id}>
+                                        <td className="ps-4">
+                                            <span className="fw-semibold text-dark">{s.subjectName}</span>
+                                        </td>
+                                        <td className="text-center">
+                                            <span className="badge text-dark px-3 py-2" style={{ backgroundColor: '#e2e8f0', borderRadius: '100px', fontSize: '0.825rem', border: '1px solid #cbd5e1' }}>
+                                                {s.subjectCode}
+                                            </span>
+                                        </td>
+                                        <td className="text-center">
+                                            <span className="text-dark fw-medium">{s.facultyId?.name || 'Not Assigned'}</span>
+                                        </td>
+                                        <td className="text-end pe-4">
+                                            <button className="btn btn-link text-primary p-1 me-2" title="Edit">
+                                                <i className="bi bi-pencil-square" style={{ fontSize: '1.2rem' }}></i>
+                                            </button>
+                                            <button
+                                                className="btn btn-link text-danger p-1"
+                                                onClick={() => handleDelete(s._id)}
+                                                title="Delete"
+                                            >
+                                                <i className="bi bi-trash" style={{ fontSize: '1.2rem' }}></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan="4" className="text-center py-5">
+                                        <div className="empty-state">
+                                            <i className="bi bi-journal-x" style={{ fontSize: '3rem', color: '#cbd5e1' }}></i>
+                                            <h4 className="mt-3">No subjects found</h4>
+                                            <p className="text-muted mb-0">Try adjusting your search criteria</p>
                                         </div>
-                                    </td>
-                                    <td>
-                                        <div className="d-flex align-items-center">
-                                            <div className="avatar-circle me-3" style={{ width: '28px', height: '28px', fontSize: '0.75rem', backgroundColor: '#e2e8f0', color: '#475569' }}>
-                                                {(s.facultyId?.name || 'F').charAt(0).toUpperCase()}
-                                            </div>
-                                            <span className="text-muted">{s.facultyId?.name || 'N/A'}</span>
-                                        </div>
-                                    </td>
-                                    <td className="text-end pe-4">
-                                        <button className="btn btn-link text-primary p-1 me-2" title="Edit">
-                                            <i className="bi bi-pencil-square" style={{ fontSize: '1.2rem' }}></i>
-                                        </button>
-                                        <button onClick={() => handleDelete(s._id)} className="btn btn-link text-danger p-1" title="Delete">
-                                            <i className="bi bi-trash" style={{ fontSize: '1.2rem' }}></i>
-                                        </button>
                                     </td>
                                 </tr>
-                            ))}
+                            )}
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            {/* Add Subject Modal */}
-            {showAddModal && (
-                <div className="modal-backdrop fade show" style={{ zIndex: 1050 }}>
-                    <div className="modal d-block" tabIndex="-1">
-                        <div className="modal-dialog modal-dialog-centered">
-                            <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '15px' }}>
-                                <div className="modal-header border-0 pb-0">
-                                    <h5 className="modal-title fw-bold">Create New Subject</h5>
-                                    <button type="button" className="btn-close" onClick={() => setShowAddModal(false)}></button>
-                                </div>
-                                <form onSubmit={handleAddSubject}>
-                                    <div className="modal-body">
-                                        <div className="mb-3">
-                                            <label className="form-label small fw-bold text-uppercase text-muted">Subject Name</label>
-                                            <input type="text" className="form-control bg-light border-0 py-2" value={name} onChange={(e) => setName(e.target.value)} required />
-                                        </div>
-                                        <div className="mb-3">
-                                            <label className="form-label small fw-bold text-uppercase text-muted">Subject Code</label>
-                                            <input type="text" className="form-control bg-light border-0 py-2" value={code} onChange={(e) => setCode(e.target.value)} required />
-                                        </div>
-                                        <div className="mb-3">
-                                            <label className="form-label small fw-bold text-uppercase text-muted">Select Faculty</label>
-                                            <select className="form-select bg-light border-0 py-2" value={facultyId} onChange={(e) => setFacultyId(e.target.value)} required>
-                                                <option value="">Choose Faculty...</option>
-                                                {faculties.map(f => (
-                                                    <option key={f._id} value={f._id}>{f.name} ({f.email})</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div className="modal-footer border-0 pt-0">
-                                        <button type="button" className="btn btn-light" onClick={() => setShowAddModal(false)}>Cancel</button>
-                                        <button type="submit" className="btn btn-primary px-4">Create Subject</button>
-                                    </div>
-                                </form>
+            {/* Minimalistic Professional Add Subject Modal */}
+            {showAddModal && createPortal(
+                <div className="custom-modal-backdrop animate__animated animate__fadeIn animate__faster">
+                    <div className="modal-content-premium animate__animated animate__zoomIn animate__faster">
+                        <div className="modal-header-premium">
+                            <div className="d-flex justify-content-between align-items-center">
+                                <h4 className="fw-bold mb-0 text-dark">Add New Subject</h4>
+                                <button
+                                    type="button"
+                                    className="btn-close shadow-none"
+                                    onClick={() => setShowAddModal(false)}
+                                ></button>
                             </div>
                         </div>
+
+                        <form onSubmit={handleAddSubject}>
+                            <div className="modal-body-premium">
+                                <div className="input-group-premium">
+                                    <label className="input-label-premium">Subject Name</label>
+                                    <div className="input-wrapper-premium">
+                                        <input
+                                            type="text"
+                                            className="form-control"
+                                            placeholder="e.g., Data Structures"
+                                            value={name}
+                                            onChange={(e) => setName(e.target.value)}
+                                            required
+                                        />
+                                        <i className="bi bi-journal-bookmark"></i>
+                                    </div>
+                                </div>
+
+                                <div className="input-group-premium">
+                                    <label className="input-label-premium">Subject Code</label>
+                                    <div className="input-wrapper-premium">
+                                        <input
+                                            type="text"
+                                            className="form-control"
+                                            placeholder="e.g., CS301"
+                                            value={code}
+                                            onChange={(e) => setCode(e.target.value)}
+                                            required
+                                        />
+                                        <i className="bi bi-hash"></i>
+                                    </div>
+                                </div>
+
+                                <div className="input-group-premium">
+                                    <label className="input-label-premium">Assign Faculty</label>
+                                    <div className="input-wrapper-premium">
+                                        <select
+                                            className="form-select"
+                                            value={selectedFacultyId}
+                                            onChange={(e) => setSelectedFacultyId(e.target.value)}
+                                        >
+                                            <option value="">Select Faculty</option>
+                                            {faculties.map(f => (
+                                                <option key={f._id} value={f._id}>{f.name}</option>
+                                            ))}
+                                        </select>
+                                        <i className="bi bi-person-badge"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="modal-footer-premium">
+                                <button
+                                    type="button"
+                                    className="btn-premium-secondary flex-grow-1"
+                                    onClick={() => setShowAddModal(false)}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="btn-premium-primary flex-grow-1 shadow-sm"
+                                >
+                                    Add Subject
+                                </button>
+                            </div>
+                        </form>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );

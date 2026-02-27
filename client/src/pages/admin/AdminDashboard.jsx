@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../utils/api';
 import DashboardCard from '../../components/DashboardCard';
+import socket, { connectSocket, disconnectSocket } from '../../utils/socket';
 
 const AdminDashboard = () => {
     const [stats, setStats] = useState(null);
@@ -19,8 +20,21 @@ const AdminDashboard = () => {
 
     useEffect(() => {
         fetchStats();
-        const interval = setInterval(fetchStats, 30000); // Polling every 30s for better performance
-        return () => clearInterval(interval);
+        connectSocket();
+
+        // Real-time listeners
+        socket.on('user_added', fetchStats);
+        socket.on('user_deleted', fetchStats);
+        socket.on('subject_added', fetchStats);
+        socket.on('subject_deleted', fetchStats);
+
+        return () => {
+            socket.off('user_added');
+            socket.off('user_deleted');
+            socket.off('subject_added');
+            socket.off('subject_deleted');
+            disconnectSocket();
+        };
     }, []);
 
     if (loading) return (
@@ -51,36 +65,41 @@ const AdminDashboard = () => {
     };
 
     return (
-        <div className="admin-dashboard-container animate__animated animate__fadeIn">
-            <div className="mb-4">
-                <h2 className="fw-bold mb-1 text-dark">Admin Overview</h2>
-                <p className="text-muted small fw-medium">Monitor system statistics and recent administrative actions</p>
+        <div className="command-center-root animate__animated animate__fadeIn">
+            <div className="widget-header mb-4">
+                <div>
+                    <h2 className="fw-900 text-dark mb-1">Admin Command Hub</h2>
+                    <div className="d-flex align-items-center gap-3 mt-2">
+                        <span className="dot-indicator dot-online"></span>
+                        <span className="text-muted extra-small fw-bold">CORE ACTIVE</span>
+                    </div>
+                </div>
             </div>
 
             <div className="row g-4 mb-5">
                 <DashboardCard
-                    title="Total Users"
-                    value={stats.users.total}
+                    title="Total Intel Users"
+                    value={stats.users?.total || 0}
                     icon="bi-people-fill"
                     color="#2563eb"
                     bgColor="#eff6ff"
                 />
                 <DashboardCard
-                    title="Subjects"
+                    title="Active Subjects"
                     value={stats.totalSubjects}
                     icon="bi-journal-bookmark-fill"
                     color="#10b981"
                     bgColor="#ecfdf5"
                 />
                 <DashboardCard
-                    title="Assignments"
+                    title="Assignment Units"
                     value={stats.totalAssignments}
                     icon="bi-file-earmark-text-fill"
                     color="#8b5cf6"
                     bgColor="#f5f3ff"
                 />
                 <DashboardCard
-                    title="Pending Evaluations"
+                    title="Pending Audit"
                     value={stats.pendingEvaluations}
                     icon="bi-alarm-fill"
                     color="#f59e0b"
@@ -88,23 +107,23 @@ const AdminDashboard = () => {
                 />
             </div>
 
-            <div className="card shadow-sm border-0 overflow-hidden">
+            <div className="bento-widget p-0 overflow-hidden">
                 <div className="px-4 py-3 border-bottom bg-white d-flex justify-content-between align-items-center">
                     <div>
-                        <h5 className="fw-bold mb-0">System Log</h5>
-                        <small className="text-muted">Latest 5 activities</small>
+                        <h5 className="fw-900 text-dark mb-0">Central Log Matrix</h5>
+                        <small className="text-muted extra-small fw-bold">LATEST 5 SYSTEM TRANSACTIONS</small>
                     </div>
-                    <span className="badge bg-light text-primary rounded-pill px-3 py-2 border">
-                        <i className="bi bi-circle-fill me-2 fs-6 animate__animated animate__pulse animate__infinite" style={{ fontSize: '8px' }}></i>
-                        Live Monitoring
+                    <span className="badge bg-light text-primary rounded-pill px-3 py-2 border-0 fw-bold">
+                        <i className="bi bi-broadcast me-2 fs-6"></i>
+                        REAL-TIME STREAM
                     </span>
                 </div>
                 <div className="table-responsive">
-                    <table className="table table-hover table-modern mb-0">
+                    <table className="command-table mb-0">
                         <thead>
                             <tr>
-                                <th>ACTION / TARGET</th>
-                                <th>EXECUTED BY</th>
+                                <th>ACTION PROTOCOL</th>
+                                <th>OPERATOR</th>
                                 <th className="text-end">TIMESTAMP</th>
                             </tr>
                         </thead>
@@ -112,15 +131,15 @@ const AdminDashboard = () => {
                             {stats.recentActivities && stats.recentActivities.length > 0 ? (
                                 stats.recentActivities.map((activity) => (
                                     <tr key={activity._id}>
-                                        <td>
+                                        <td className="ps-4">
                                             <div className="d-flex align-items-center">
-                                                <div className="rounded-circle bg-light d-flex align-items-center justify-content-center me-3" style={{ width: '32px', height: '32px' }}>
-                                                    <i className="bi bi-lightning-fill text-primary" style={{ fontSize: '0.9rem' }}></i>
+                                                <div className="title-icon me-3" style={{ width: '28px', height: '28px', minWidth: '28px' }}>
+                                                    <i className="bi bi-lightning-fill" style={{ fontSize: '0.8rem' }}></i>
                                                 </div>
                                                 <div className="d-flex flex-column">
-                                                    <span className="fw-bold text-dark">{activity.action}</span>
+                                                    <span className="fw-900 text-dark small">{activity.action}</span>
                                                     {activity.target && (
-                                                        <span className="text-muted" style={{ fontSize: '0.75rem' }}>
+                                                        <span className="text-muted extra-small fw-bold">
                                                             {activity.target}
                                                         </span>
                                                     )}
@@ -128,9 +147,9 @@ const AdminDashboard = () => {
                                             </div>
                                         </td>
                                         <td>
-                                            <span className="fw-semibold text-muted">{activity.user}</span>
+                                            <span className="fw-bold text-muted small">{activity.user}</span>
                                         </td>
-                                        <td className="text-end fw-medium text-muted">
+                                        <td className="text-end pe-4 fw-bold text-muted small">
                                             {formatTimeAgo(activity.timestamp)}
                                         </td>
                                     </tr>
@@ -140,7 +159,7 @@ const AdminDashboard = () => {
                                     <td colSpan="3">
                                         <div className="empty-state py-5">
                                             <i className="bi bi-journal-x d-block mb-3 opacity-25" style={{ fontSize: '3rem' }}></i>
-                                            <span className="fw-medium">No system activity has been recorded yet.</span>
+                                            <span className="fw-medium">No telemetry data recorded.</span>
                                         </div>
                                     </td>
                                 </tr>

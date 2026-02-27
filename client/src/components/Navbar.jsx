@@ -35,7 +35,7 @@ const Navbar = () => {
                             </div>
 
                             {/* Avatar */}
-                            <div className="avatar-circle shadow-sm" style={{ width: '42px', height: '42px', fontSize: '1.1rem', backgroundColor: 'var(--primary-color)' }}>
+                            <div className="avatar-circle rounded-circle shadow-sm" style={{ width: '42px', height: '42px', fontSize: '1.1rem', backgroundColor: 'var(--primary-color)' }}>
                                 {(user.name || user.role || 'U').charAt(0).toUpperCase()}
                             </div>
 

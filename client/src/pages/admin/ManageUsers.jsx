@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { createPortal } from 'react-dom';
+import api from '../../utils/api';
 import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
+import socket, { connectSocket, disconnectSocket } from '../../utils/socket';
 
 const ManageUsers = () => {
     const [users, setUsers] = useState([]);
@@ -12,48 +14,60 @@ const ManageUsers = () => {
     // Form state for adding user
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
-    const [role, setRole] = useState('faculty');
-    const [password, setPassword] = useState('');
+    const [role, setRole] = useState('student');
     const [showAddModal, setShowAddModal] = useState(false);
 
     const fetchUsers = async () => {
         try {
-            const { data } = await axios.get('http://localhost:5000/api/users', {
-                headers: { Authorization: `Bearer ${JSON.parse(localStorage.getItem('user')).token}` }
-            });
-            setUsers(data);
-            setFilteredUsers(data);
+            const { data } = await api.get('/users');
+            setUsers(Array.isArray(data) ? data : []);
+            setFilteredUsers(Array.isArray(data) ? data : []);
         } catch (err) {
             toast.error('Failed to fetch users');
+            console.error(err);
         }
     };
 
     useEffect(() => {
         fetchUsers();
+        connectSocket();
+
+        socket.on('user_added', fetchUsers);
+        socket.on('user_deleted', fetchUsers);
+
+        return () => {
+            socket.off('user_added');
+            socket.off('user_deleted');
+            disconnectSocket();
+        };
     }, []);
 
     useEffect(() => {
-        let results = users;
+        let results = [...users];
+
         if (searchTerm) {
+            const lowerSearch = searchTerm.toLowerCase();
             results = results.filter(u =>
-                u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                u.email.toLowerCase().includes(searchTerm.toLowerCase())
+                (u.name && u.name.toLowerCase().includes(lowerSearch)) ||
+                (u.email && u.email.toLowerCase().includes(lowerSearch))
             );
         }
-        if (roleFilter !== 'All Roles') {
-            results = results.filter(u => u.role.toLowerCase() === roleFilter.toLowerCase());
+
+        if (roleFilter && roleFilter !== 'All Roles') {
+            results = results.filter(u =>
+                u.role && u.role.toLowerCase() === roleFilter.toLowerCase()
+            );
         }
+
         setFilteredUsers(results);
     }, [searchTerm, roleFilter, users]);
 
     const handleAddUser = async (e) => {
         e.preventDefault();
         try {
-            await axios.post('http://localhost:5000/api/users', { name, email, role, password }, {
-                headers: { Authorization: `Bearer ${JSON.parse(localStorage.getItem('user')).token}` }
-            });
+            await api.post('/users', { name, email, role });
             toast.success('User added successfully');
-            setName(''); setEmail(''); setPassword('');
+            setName(''); setEmail('');
             setShowAddModal(false);
             fetchUsers();
         } catch (err) {
@@ -74,9 +88,7 @@ const ManageUsers = () => {
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
-                    await axios.delete(`http://localhost:5000/api/users/${id}`, {
-                        headers: { Authorization: `Bearer ${JSON.parse(localStorage.getItem('user')).token}` }
-                    });
+                    await api.delete(`/users/${id}`);
                     Swal.fire({ title: 'Deleted!', icon: 'success', timer: 1500, showConfirmButton: false });
                     fetchUsers();
                 } catch (err) {
@@ -87,6 +99,7 @@ const ManageUsers = () => {
     };
 
     const getRoleBadgeClass = (role) => {
+        if (!role) return 'bg-light text-dark';
         switch (role.toLowerCase()) {
             case 'admin': return 'badge-admin';
             case 'faculty': return 'badge-faculty';
@@ -104,7 +117,7 @@ const ManageUsers = () => {
                 </div>
             </div>
 
-            <div className="d-flex gap-3 mb-4 mt-3">
+            <div className="d-flex align-items-center gap-3 mb-4 mt-3">
                 <div className="search-container flex-grow-1">
                     <i className="bi bi-search"></i>
                     <input
@@ -115,10 +128,15 @@ const ManageUsers = () => {
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <div style={{ width: '180px' }}>
+                <div style={{ width: '200px' }}>
                     <select
-                        className="form-select border-0 shadow-sm"
-                        style={{ borderRadius: '10px', height: '100%' }}
+                        className="form-select border-1 shadow-sm"
+                        style={{
+                            borderRadius: '12px',
+                            height: '48px',
+                            borderColor: 'var(--border-color)',
+                            backgroundColor: 'white'
+                        }}
                         value={roleFilter}
                         onChange={(e) => setRoleFilter(e.target.value)}
                     >
@@ -130,7 +148,7 @@ const ManageUsers = () => {
                 </div>
                 <button
                     className="btn btn-primary d-flex align-items-center px-4"
-                    style={{ borderRadius: '10px' }}
+                    style={{ borderRadius: '12px', height: '48px' }}
                     onClick={() => setShowAddModal(true)}
                 >
                     <i className="bi bi-person-plus me-2 fs-5"></i>
@@ -143,16 +161,16 @@ const ManageUsers = () => {
                     <table className="table table-hover table-modern mb-0">
                         <thead>
                             <tr>
-                                <th>Name</th>
-                                <th>Email</th>
-                                <th>Role</th>
+                                <th className="ps-4">Name</th>
+                                <th className="text-center">Email</th>
+                                <th className="text-center">Role</th>
                                 <th className="text-end pe-4">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {filteredUsers.map(u => (
                                 <tr key={u._id}>
-                                    <td>
+                                    <td className="ps-4">
                                         <div className="d-flex align-items-center">
                                             <div className="avatar-circle me-3" style={{ width: '36px', height: '36px', fontSize: '0.85rem' }}>
                                                 {(u.name || 'U').charAt(0).toUpperCase()}
@@ -160,8 +178,8 @@ const ManageUsers = () => {
                                             <span className="fw-bold">{u.name}</span>
                                         </div>
                                     </td>
-                                    <td className="text-muted">{u.email}</td>
-                                    <td>
+                                    <td className="text-muted text-center">{u.email}</td>
+                                    <td className="text-center">
                                         <span className={getRoleBadgeClass(u.role)} style={{ textTransform: 'capitalize' }}>{u.role}</span>
                                     </td>
                                     <td className="text-end pe-4">
@@ -184,49 +202,92 @@ const ManageUsers = () => {
                 </div>
             </div>
 
-            {/* Simple Add User Modal/Overlay */}
-            {showAddModal && (
-                <div className="modal-backdrop fade show" style={{ zIndex: 1050 }}>
-                    <div className="modal d-block" tabIndex="-1">
-                        <div className="modal-dialog modal-dialog-centered">
-                            <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '15px' }}>
-                                <div className="modal-header border-0 pb-0">
-                                    <h5 className="modal-title fw-bold">Add New User</h5>
-                                    <button type="button" className="btn-close" onClick={() => setShowAddModal(false)}></button>
+            {/* Minimalistic Professional Add User Modal */}
+            {
+                showAddModal && createPortal(
+                    <div className="custom-modal-backdrop animate__animated animate__fadeIn animate__faster">
+                        <div className="modal-content-premium animate__animated animate__zoomIn animate__faster">
+                            <div className="modal-header-premium">
+                                <div className="d-flex justify-content-between align-items-center">
+                                    <h4 className="fw-bold mb-0 text-dark">Add New User</h4>
+                                    <button
+                                        type="button"
+                                        className="btn-close shadow-none"
+                                        onClick={() => setShowAddModal(false)}
+                                    ></button>
                                 </div>
-                                <form onSubmit={handleAddUser}>
-                                    <div className="modal-body">
-                                        <div className="mb-3">
-                                            <label className="form-label small fw-bold text-uppercase text-muted">Name</label>
-                                            <input type="text" className="form-control bg-light border-0 py-2" value={name} onChange={(e) => setName(e.target.value)} required />
-                                        </div>
-                                        <div className="mb-3">
-                                            <label className="form-label small fw-bold text-uppercase text-muted">Email</label>
-                                            <input type="email" className="form-control bg-light border-0 py-2" value={email} onChange={(e) => setEmail(e.target.value)} required />
-                                        </div>
-                                        <div className="mb-3">
-                                            <label className="form-label small fw-bold text-uppercase text-muted">Password</label>
-                                            <input type="password" className="form-control bg-light border-0 py-2" value={password} onChange={(e) => setPassword(e.target.value)} required />
-                                        </div>
-                                        <div className="mb-3">
-                                            <label className="form-label small fw-bold text-uppercase text-muted">Role</label>
-                                            <select className="form-select bg-light border-0 py-2" value={role} onChange={(e) => setRole(e.target.value)}>
-                                                <option value="faculty">Faculty</option>
-                                                <option value="student">Student</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div className="modal-footer border-0 pt-0">
-                                        <button type="button" className="btn btn-light" onClick={() => setShowAddModal(false)}>Cancel</button>
-                                        <button type="submit" className="btn btn-primary px-4">Create User</button>
-                                    </div>
-                                </form>
                             </div>
+
+                            <form onSubmit={handleAddUser}>
+                                <div className="modal-body-premium">
+                                    <div className="input-group-premium">
+                                        <label className="input-label-premium">Name</label>
+                                        <div className="input-wrapper-premium">
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                placeholder="Enter full name"
+                                                value={name}
+                                                onChange={(e) => setName(e.target.value)}
+                                                required
+                                            />
+                                            <i className="bi bi-person"></i>
+                                        </div>
+                                    </div>
+
+                                    <div className="input-group-premium">
+                                        <label className="input-label-premium">Email</label>
+                                        <div className="input-wrapper-premium">
+                                            <input
+                                                type="email"
+                                                className="form-control"
+                                                placeholder="email@university.edu"
+                                                value={email}
+                                                onChange={(e) => setEmail(e.target.value)}
+                                                required
+                                            />
+                                            <i className="bi bi-envelope"></i>
+                                        </div>
+                                    </div>
+
+                                    <div className="input-group-premium">
+                                        <label className="input-label-premium">Role</label>
+                                        <div className="input-wrapper-premium">
+                                            <select
+                                                className="form-select"
+                                                value={role}
+                                                onChange={(e) => setRole(e.target.value)}
+                                            >
+                                                <option value="student">Student</option>
+                                                <option value="faculty">Faculty</option>
+                                            </select>
+                                            <i className="bi bi-person-badge"></i>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="modal-footer-premium">
+                                    <button
+                                        type="button"
+                                        className="btn-premium-secondary flex-grow-1"
+                                        onClick={() => setShowAddModal(false)}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="btn-premium-primary flex-grow-1 shadow-sm"
+                                    >
+                                        Add User
+                                    </button>
+                                </div>
+                            </form>
                         </div>
-                    </div>
-                </div>
-            )}
-        </div>
+                    </div>,
+                    document.body
+                )
+            }
+        </div >
     );
 };
 
