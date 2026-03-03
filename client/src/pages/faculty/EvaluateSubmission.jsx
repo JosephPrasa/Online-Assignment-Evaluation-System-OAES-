@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../../utils/api';
 import { toast } from 'react-toastify';
 
 const EvaluateSubmission = () => {
@@ -8,30 +8,19 @@ const EvaluateSubmission = () => {
     const [submission, setSubmission] = useState(null);
     const [marks, setMarks] = useState('');
     const [feedback, setFeedback] = useState('');
-    const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
         const fetchSubmission = async () => {
             try {
-                const token = JSON.parse(localStorage.getItem('user')).token;
-                // Currently, there might not be a direct GET /submissions/:id, 
-                // but ViewSubmissions fetches all for assignment. 
-                // Let's check submissionController.js for a single fetch.
-                // If not, we can rely on what we have.
-                const res = await axios.get(`http://localhost:5000/api/submissions/${id}`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                const res = await api.get(`/submissions/${id}`);
                 setSubmission(res.data);
                 setMarks(res.data.marks || '');
                 setFeedback(res.data.feedback || '');
-                setLoading(false);
             } catch (err) {
                 console.error(err);
-                // If 404, the endpoint might not exist yet, let's check backend
                 toast.error('Failed to fetch submission details');
-                setLoading(false);
             }
         };
         fetchSubmission();
@@ -41,12 +30,9 @@ const EvaluateSubmission = () => {
         e.preventDefault();
         setSaving(true);
         try {
-            const token = JSON.parse(localStorage.getItem('user')).token;
-            await axios.put(`http://localhost:5000/api/submissions/${id}/evaluate`, {
+            await api.put(`/submissions/${id}/evaluate`, {
                 marks: Number(marks),
                 feedback
-            }, {
-                headers: { Authorization: `Bearer ${token}` }
             });
             toast.success('Evaluation saved successfully!');
             navigate(-1);
@@ -57,94 +43,111 @@ const EvaluateSubmission = () => {
         }
     };
 
-    if (loading) return (
-        <div className="d-flex justify-content-center align-items-center" style={{ height: '80vh' }}>
-            <div className="spinner-border text-primary" role="status">
-                <span className="visually-hidden">Loading Portal...</span>
-            </div>
-        </div>
-    );
+    const quickRemarks = [
+        "Excellent work! Very well explained.",
+        "Good effort, but needs more detail in some areas.",
+        "Presentation is professional and clear.",
+        "Please re-check the calculations.",
+        "Incomplete submission. Please finalize and re-submit.",
+        "Outstanding analysis and depth.",
+        "Good understanding of core concepts."
+    ];
+
+    const addRemark = (remark) => {
+        setFeedback(prev => prev ? `${prev}\n${remark}` : remark);
+    };
+
+    // removed blocking loading spinner for zero-loading feel
 
     return (
-        <div className="evaluate-submission-container pb-5">
+        <div className="evaluate-submission-root animate__animated animate__fadeIn pb-5">
             <div className="mb-4">
-                <button
-                    onClick={() => navigate(-1)}
-                    className="btn btn-link text-decoration-none p-0 text-muted small d-flex align-items-center mb-3"
-                >
-                    <i className="bi bi-chevron-left me-1"></i> Back to Submissions
-                </button>
+                <div className="d-flex align-items-center mb-1">
+                    <button
+                        onClick={() => navigate(-1)}
+                        className="btn btn-white rounded-circle p-2 me-3 shadow-sm border transition-all hover-elevate"
+                        title="Go Back"
+                    >
+                        <i className="bi bi-arrow-left fs-5"></i>
+                    </button>
+                    <h2 className="fw-bold mb-0 text-dark">Evaluate Submission</h2>
+                </div>
+                <p className="text-muted small fw-medium ms-5 ps-3">Provide feedback and marks for the student's work</p>
             </div>
 
-            <div className="card border-0 shadow-sm mx-auto" style={{ maxWidth: '800px', borderRadius: '16px' }}>
+            <div className="card shadow-sm border-0 mx-auto" style={{ maxWidth: '900px', borderRadius: '20px' }}>
                 <div className="card-body p-4 p-md-5">
-                    <div className="d-flex justify-content-between align-items-start mb-4">
-                        <div>
-                            <h3 className="fw-bold mb-1">Evaluate Submission</h3>
-                            <p className="text-muted small mb-0">Provide feedback and marks for the student's work.</p>
+                    <div className="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+                        <div className="d-flex align-items-center">
+                            <div className="avatar-circle me-3" style={{ width: '45px', height: '45px', fontSize: '1.1rem', backgroundColor: '#eff6ff', color: '#2563eb', fontWeight: '900' }}>
+                                {submission?.studentId?.name?.charAt(0) || 'S'}
+                            </div>
+                            <div>
+                                <h5 className="fw-900 text-dark mb-0">{submission?.studentId?.name || 'Unknown Student'}</h5>
+                                <span className="text-muted extra-small fw-bold">{submission?.assignmentId?.title || 'Assignment'}</span>
+                            </div>
                         </div>
-                        <span className={`badge px-3 py-2 rounded-pill fw-medium ${submission?.status === 'graded' ? 'bg-soft-success text-success' : 'bg-soft-warning text-warning'
+                        <span className={`badge px-3 py-2 rounded-pill fw-bold ${submission?.status === 'graded' ? 'bg-soft-success text-success' : 'bg-soft-warning text-warning'
                             }`} style={{
-                                backgroundColor: submission?.status === 'graded' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)'
+                                backgroundColor: submission?.status === 'graded' ? '#ecfdf5' : '#fffbeb',
+                                color: submission?.status === 'graded' ? '#10b981' : '#f59e0b',
+                                fontSize: '0.7rem'
                             }}>
                             {submission?.status === 'graded' ? 'Graded' : 'Pending Review'}
                         </span>
                     </div>
 
-                    <div className="bg-light rounded-4 p-4 mb-5 border border-light-subtle">
-                        <div className="row g-4 text-center">
-                            <div className="col-4 border-end border-light-subtle">
-                                <p className="text-muted extra-small text-uppercase fw-bold mb-1">Student</p>
-                                <p className="fw-bold text-dark mb-0 small">{submission?.studentId?.name || 'Unknown'}</p>
-                            </div>
-                            <div className="col-4 border-end border-light-subtle">
-                                <p className="text-muted extra-small text-uppercase fw-bold mb-1">Assignment</p>
-                                <p className="fw-bold text-dark mb-0 small text-truncate">{submission?.assignmentId?.title || 'Unknown'}</p>
-                            </div>
-                            <div className="col-4">
-                                <p className="text-muted extra-small text-uppercase fw-bold mb-1">Submitted On</p>
-                                <p className="fw-bold text-dark mb-0 small">
-                                    {submission?.submittedAt ? new Date(submission.submittedAt).toLocaleDateString('en-GB') : '-'}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
                     <form onSubmit={handleEvaluate}>
-                        <div className="mb-4">
-                            <label className="form-label fw-bold small text-dark d-flex align-items-center justify-content-between">
-                                <span>Marks Obtained <span className="text-danger">*</span></span>
-                                <span className="text-muted extra-small">Total possible: {submission?.assignmentId?.points || '-'}</span>
-                            </label>
-                            <div className="input-group" style={{ maxWidth: '200px' }}>
-                                <input
-                                    type="number"
-                                    className="form-control border-light-subtle py-2 px-3 fw-bold text-primary"
-                                    value={marks}
-                                    onChange={(e) => setMarks(e.target.value)}
-                                    required
-                                    max={submission?.assignmentId?.points}
-                                    style={{ borderRadius: '10px 0 0 10px' }}
-                                />
-                                <span className="input-group-text bg-light border-light-subtle extra-small fw-bold" style={{ borderRadius: '0 10px 10px 0' }}>
-                                    / {submission?.assignmentId?.points || '-'}
-                                </span>
+                        <div className="row g-4 mb-4">
+                            <div className="col-md-6">
+                                <label className="form-label-premium">Marks Obtained</label>
+                                <div className="input-group">
+                                    <input
+                                        type="number"
+                                        className="form-control form-control-premium text-primary fw-900 fs-4"
+                                        value={marks}
+                                        onChange={(e) => setMarks(e.target.value)}
+                                        required
+                                        max={submission?.assignmentId?.points}
+                                        placeholder="0"
+                                    />
+                                    <span className="input-group-text bg-light border-0 fw-bold text-muted">/ {submission?.assignmentId?.points || '100'}</span>
+                                </div>
+                            </div>
+                            <div className="col-md-6">
+                                <label className="form-label-premium">Submission Date</label>
+                                <div className="p-3 bg-light rounded-4 border border-light-subtle d-flex align-items-center">
+                                    <i className="bi bi-calendar3 text-primary me-3"></i>
+                                    <span className="fw-bold text-dark">{submission?.submittedAt ? new Date(submission.submittedAt).toLocaleDateString('en-GB') : '-'}</span>
+                                </div>
                             </div>
                         </div>
 
                         <div className="mb-4">
-                            <label className="form-label fw-bold small text-dark d-flex align-items-center">
-                                Feedback <span className="text-danger ms-1">*</span>
-                            </label>
+                            <label className="form-label-premium">Feedback / Remarks</label>
                             <textarea
-                                className="form-control border-light-subtle py-2 px-3"
-                                rows="8"
+                                className="form-control form-control-premium"
+                                rows="6"
                                 placeholder="Write constructive feedback for the student..."
                                 value={feedback}
                                 onChange={(e) => setFeedback(e.target.value)}
                                 required
-                                style={{ borderRadius: '10px' }}
                             ></textarea>
+
+                            <div className="mt-3">
+                                <span className="extra-small fw-900 text-muted text-uppercase mb-2 d-block">Quick Remarks</span>
+                                <div className="quick-remarks-container">
+                                    {quickRemarks.map((remark, idx) => (
+                                        <div
+                                            key={idx}
+                                            className="quick-remark-pill"
+                                            onClick={() => addRemark(remark)}
+                                        >
+                                            {remark}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
 
                         <div className="bg-light rounded-4 p-3 mb-5 d-flex align-items-center">

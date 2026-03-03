@@ -1,120 +1,138 @@
 const Submission = require('../schemas/student/Submission');
 const Assignment = require('../schemas/faculty/Assignment');
+const StudentProfile = require('../schemas/student/StudentProfile');
+const logActivity = require('../utils/activityLogger');
 
-// @desc    Submit an assignment
-// @route   POST /api/submissions
-// @access  Private/Student
+/**
+ * Controller for handling student assignment submissions.
+ */
+
+/**
+ * @desc    Submit an assignment file
+ * @route   POST /api/submissions
+ * @access  Private/Student
+ */
 const submitAssignment = async (req, res) => {
-    const { assignmentId } = req.body;
+    try {
+        const { assignmentId } = req.body;
 
-    console.log('Submission Request Body:', req.body);
-    console.log('Submission Request File:', req.file);
+        // Make sure a file was actually uploaded
+        if (!req.file) {
+            return res.status(400).json({ message: 'No file uploaded' });
+        }
 
-    if (!req.file) {
-        return res.status(400).json({ message: 'No file uploaded' });
+        // Check if the assignment exists
+        const assignment = await Assignment.findById(assignmentId);
+        if (!assignment) {
+            return res.status(404).json({ message: 'Assignment not found' });
+        }
+
+        // Check if the deadline has already passed
+        if (new Date() > new Date(assignment.dueDate)) {
+            return res.status(400).json({ message: 'Assignment deadline has passed' });
+        }
+
+        // Save the submission details to the database
+        const submission = await Submission.create({
+            assignmentId,
+            studentId: req.user._id,
+            fileUrl: req.file.path,
+            status: 'submitted'
+        });
+
+        // Log the activity
+        await logActivity('Assignment submitted', req.user.name, assignment.title);
+
+        res.status(201).json(submission);
+    } catch (error) {
+        console.error('Error submitting assignment:', error);
+        res.status(500).json({ message: 'Failed to submit assignment' });
     }
-
-    const assignment = await Assignment.findById(assignmentId);
-    if (!assignment) {
-        return res.status(404).json({ message: 'Assignment not found' });
-    }
-
-    // Check if within deadline
-    if (new Date() > new Date(assignment.dueDate)) {
-        return res.status(400).json({ message: 'Assignment deadline has passed' });
-    }
-
-    const logActivity = require('../utils/activityLogger');
-
-    const submission = await Submission.create({
-        assignmentId,
-        studentId: req.user._id,
-        fileUrl: req.file.path,
-        status: 'submitted'
-    });
-
-    // Log the activity
-    await logActivity('Assignment submitted', req.user.name, assignment.title);
-
-    res.status(201).json(submission);
 };
 
-// @desc    Get submissions for an assignment (Role based)
-// @route   GET /api/submissions/assignment/:assignmentId
-// @access  Private
+/**
+ * @desc    Get submissions for a specific assignment
+ * @route   GET /api/submissions/assignment/:assignmentId
+ * @access  Private
+ */
 const getSubmissionsByAssignment = async (req, res) => {
-    let query = { assignmentId: req.params.assignmentId };
+    try {
+        let query = { assignmentId: req.params.assignmentId };
 
-    // If student, only show their own
-    if (req.user.role === 'student') {
-        query.studentId = req.user._id;
+        // If a student is asking, only show their own submission
+        if (req.user.role === 'student') {
+            query.studentId = req.user._id;
+        }
+
+        // Find matches in the database
+        const submissions = await Submission.find(query);
+
+        // Add student names manually (since they are in another collection)
+        const studentIds = [...new Set(submissions.map(s => s.studentId))];
+        const students = await StudentProfile.find({ _id: { $in: studentIds } }, 'name email');
+        const studentMap = students.reduce((acc, stu) => {
+            acc[stu._id.toString()] = stu;
+            return acc;
+        }, {});
+
+        // Add assignment titles manually
+        const assignmentIds = [...new Set(submissions.map(s => s.assignmentId))];
+        const assignments = await Assignment.find({ _id: { $in: assignmentIds } }, 'title');
+        const assignmentMap = assignments.reduce((acc, ass) => {
+            acc[ass._id.toString()] = ass;
+            return acc;
+        }, {});
+
+        // Combine all data together
+        const populatedSubmissions = submissions.map(s => ({
+            ...s.toObject(),
+            studentId: studentMap[s.studentId?.toString()] || null,
+            assignmentId: assignmentMap[s.assignmentId?.toString()] || null
+        }));
+
+        res.json(populatedSubmissions);
+    } catch (error) {
+        console.error('Error fetching submissions:', error);
+        res.status(500).json({ message: 'Could not get submissions' });
     }
-
-    // const submissions = await Submission.find(query)
-    //     .populate('studentId', 'name email')
-    //     .populate('assignmentId', 'title');
-
-    const submissions = await Submission.find(query);
-
-    // Manual population for Student (User)
-    // Since we are in studentDB, and students are in studentDB, we might be able to find them.
-    // But let's use the helper or direct query.
-    const StudentProfile = require('../schemas/student/StudentProfile');
-    const studentIds = [...new Set(submissions.map(s => s.studentId))];
-    const students = await StudentProfile.find({ _id: { $in: studentIds } }, 'name email');
-    const studentMap = students.reduce((acc, stu) => {
-        acc[stu._id.toString()] = stu;
-        return acc;
-    }, {});
-
-    // Manual population for Assignment (Cross-DB: FacultyDB)
-    const Assignment = require('../schemas/faculty/Assignment');
-    const assignmentIds = [...new Set(submissions.map(s => s.assignmentId))];
-    const assignments = await Assignment.find({ _id: { $in: assignmentIds } }, 'title');
-    const assignmentMap = assignments.reduce((acc, ass) => {
-        acc[ass._id.toString()] = ass;
-        return acc;
-    }, {});
-
-    const populatedSubmissions = submissions.map(s => ({
-        ...s.toObject(),
-        studentId: studentMap[s.studentId?.toString()] || null,
-        assignmentId: assignmentMap[s.assignmentId?.toString()] || null
-    }));
-
-    res.json(populatedSubmissions);
 };
 
-// @desc    Get student's own submissions
-// @route   GET /api/submissions/my
-// @access  Private/Student
+/**
+ * @desc    Get all submissions made by the logged-in student
+ * @route   GET /api/submissions/my
+ * @access  Private/Student
+ */
 const getMySubmissions = async (req, res) => {
-    // const submissions = await Submission.find({ studentId: req.user._id })
-    //     .populate('assignmentId', 'title dueDate points');
+    try {
+        // Find all submissions for the current user
+        const submissions = await Submission.find({ studentId: req.user._id });
 
-    const submissions = await Submission.find({ studentId: req.user._id });
+        // Add assignment details (title, deadline, points)
+        const assignmentIds = [...new Set(submissions.map(s => s.assignmentId))];
+        const assignments = await Assignment.find({ _id: { $in: assignmentIds } }, 'title dueDate points');
 
-    // Manual population for Assignment (Cross-DB: get from FacultyDB)
-    const Assignment = require('../schemas/faculty/Assignment');
-    const assignmentIds = [...new Set(submissions.map(s => s.assignmentId))];
-    const assignments = await Assignment.find({ _id: { $in: assignmentIds } }, 'title dueDate points');
+        const assignmentMap = assignments.reduce((acc, ass) => {
+            acc[ass._id.toString()] = ass;
+            return acc;
+        }, {});
 
-    const assignmentMap = assignments.reduce((acc, ass) => {
-        acc[ass._id.toString()] = ass;
-        return acc;
-    }, {});
+        const populatedSubmissions = submissions.map(s => ({
+            ...s.toObject(),
+            assignmentId: assignmentMap[s.assignmentId?.toString()] || null
+        }));
 
-    const populatedSubmissions = submissions.map(s => ({
-        ...s.toObject(),
-        assignmentId: assignmentMap[s.assignmentId?.toString()] || null
-    }));
-
-    res.json(populatedSubmissions);
+        res.json(populatedSubmissions);
+    } catch (error) {
+        console.error('Error fetching your submissions:', error);
+        res.status(500).json({ message: 'Could not get your submissions' });
+    }
 };
 
-// @desc    Get single submission by ID
-// @route   GET /api/submissions/:id
-// @access  Private
+/**
+ * @desc    Get details of a single submission by its ID
+ * @route   GET /api/submissions/:id
+ * @access  Private
+ */
 const getSubmissionById = async (req, res) => {
     try {
         const submission = await Submission.findById(req.params.id);
@@ -122,10 +140,7 @@ const getSubmissionById = async (req, res) => {
             return res.status(404).json({ message: 'Submission not found' });
         }
 
-        // Manual population
-        const StudentProfile = require('../schemas/student/StudentProfile');
-        const Assignment = require('../schemas/faculty/Assignment');
-
+        // Add student and assignment details manually
         const student = await StudentProfile.findOne({ userId: submission.studentId }).select('name email');
         const assignment = await Assignment.findById(submission.assignmentId).select('title points');
 
@@ -135,7 +150,8 @@ const getSubmissionById = async (req, res) => {
             assignmentId: assignment || { title: 'Unknown', points: 0 }
         });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error('Error fetching submission details:', error);
+        res.status(500).json({ message: 'Could not find the submission' });
     }
 };
 

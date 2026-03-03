@@ -109,54 +109,60 @@ const ManageUsers = () => {
     };
 
     return (
-        <div className="manage-users-container">
-            <div className="d-flex justify-content-between align-items-center mb-1">
-                <div>
-                    <h2 className="fw-bold mb-0">Manage Users</h2>
-                    <p className="text-muted">View and manage all system users</p>
-                </div>
-            </div>
-
-            <div className="d-flex align-items-center gap-3 mb-4 mt-3">
-                <div className="search-container flex-grow-1">
-                    <i className="bi bi-search"></i>
-                    <input
-                        type="text"
-                        className="form-control"
-                        placeholder="Search by name or email..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
-                <div style={{ width: '200px' }}>
-                    <select
-                        className="form-select border-1 shadow-sm"
-                        style={{
-                            borderRadius: '12px',
-                            height: '48px',
-                            borderColor: 'var(--border-color)',
-                            backgroundColor: 'white'
-                        }}
-                        value={roleFilter}
-                        onChange={(e) => setRoleFilter(e.target.value)}
+        <div className="dashboard-analytics-root animate__animated animate__fadeIn">
+            <div className="mb-4">
+                <div className="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 className="fw-900 text-dark mb-1">Manage Users</h2>
+                        <p className="text-muted small fw-medium">
+                            <span className="status-pulse pulse-emerald"></span> User Governance
+                        </p>
+                    </div>
+                    <button
+                        className="btn btn-primary d-flex align-items-center px-4 shadow-sm"
+                        style={{ borderRadius: '12px', height: '45px', fontSize: '0.85rem', fontWeight: '800' }}
+                        onClick={() => setShowAddModal(true)}
                     >
-                        <option>All Roles</option>
-                        <option>Admin</option>
-                        <option>Faculty</option>
-                        <option>Student</option>
-                    </select>
+                        <i className="bi bi-person-plus me-2 fs-5"></i>
+                        Add User
+                    </button>
                 </div>
-                <button
-                    className="btn btn-primary d-flex align-items-center px-4"
-                    style={{ borderRadius: '12px', height: '48px' }}
-                    onClick={() => setShowAddModal(true)}
-                >
-                    <i className="bi bi-person-plus me-2 fs-5"></i>
-                    Add User
-                </button>
             </div>
 
-            <div className="card shadow-sm border-0 overflow-hidden" style={{ borderRadius: '12px' }}>
+            <div className="analytics-surface p-3 mb-4">
+                <div className="d-flex align-items-center gap-3">
+                    <div className="search-container flex-grow-1 border-0 bg-light-subtle">
+                        <i className="bi bi-search text-primary"></i>
+                        <input
+                            type="text"
+                            className="form-control"
+                            placeholder="Find users by name or credentials..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                    <div style={{ width: '200px' }}>
+                        <select
+                            className="form-select border-0 shadow-sm bg-light-subtle fw-bold"
+                            style={{
+                                borderRadius: '10px',
+                                height: '45px',
+                                fontSize: '0.75rem',
+                                color: 'var(--text-main)'
+                            }}
+                            value={roleFilter}
+                            onChange={(e) => setRoleFilter(e.target.value)}
+                        >
+                            <option>All Roles</option>
+                            <option>Admin</option>
+                            <option>Faculty</option>
+                            <option>Student</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div className="analytics-surface p-0 overflow-hidden">
                 <div className="table-responsive">
                     <table className="table table-hover table-modern mb-0">
                         <thead>
@@ -209,7 +215,7 @@ const ManageUsers = () => {
                         <div className="modal-content-premium animate__animated animate__zoomIn animate__faster">
                             <div className="modal-header-premium">
                                 <div className="d-flex justify-content-between align-items-center">
-                                    <h4 className="fw-bold mb-0 text-dark">Add New User</h4>
+                                    <h4 className="fw-900 mb-0 text-dark">Add New User</h4>
                                     <button
                                         type="button"
                                         className="btn-close shadow-none"

@@ -4,16 +4,20 @@ const StudentProfile = require('../schemas/student/StudentProfile');
 const SubjectMaster = require('../schemas/admin/SubjectMaster');
 const Assignment = require('../schemas/faculty/Assignment');
 const Submission = require('../schemas/student/Submission');
-
 const Activity = require('../schemas/admin/Activity');
 
-// @desc    Get Admin Dashboard Stats
-// @route   GET /api/dashboard/admin
-// @access  Private/Admin
+/**
+ * Controller for showing statistics on the dashboard for different users.
+ */
+
+/**
+ * @desc    Get data for the Admin Dashboard
+ * @route   GET /api/dashboard/admin
+ * @access  Private/Admin
+ */
 const getAdminStats = async (req, res) => {
     try {
-        console.log('Fetching Admin Stats...');
-
+        // Count how many users and items we have in total
         const adminCount = await Admin.countDocuments();
         const facultyCount = await FacultyProfile.countDocuments();
         const studentCount = await StudentProfile.countDocuments();
@@ -23,7 +27,7 @@ const getAdminStats = async (req, res) => {
         const totalSubmissions = await Submission.countDocuments();
         const totalGraded = await Submission.countDocuments({ status: 'graded' });
 
-        // Fetch recent activities
+        // Get the 5 most recent activities to show on the dashboard
         const recentActivities = await Activity.find({})
             .sort({ timestamp: -1 })
             .limit(5);
@@ -41,44 +45,72 @@ const getAdminStats = async (req, res) => {
             totalAssignments,
             totalSubmissions,
             pendingEvaluations: totalSubmissions - totalGraded,
-            recentActivities // Add this to the response
+            recentActivities
         };
-        console.log('Admin stats prepared:', stats);
 
         res.status(200).json(stats);
     } catch (error) {
-        console.error('Error in getAdminStats:', error);
-        res.status(500).json({ message: error.message });
+        console.error('Error fetching admin dashboard stats:', error);
+        res.status(500).json({
+            message: 'Failed to fetch admin stats',
+            error: error.message
+        });
     }
 };
 
-// @desc    Get Faculty Dashboard Stats
-// @route   GET /api/dashboard/faculty
-// @access  Private/Faculty
+/**
+ * @desc    Get data for the Faculty Dashboard
+ * @route   GET /api/dashboard/faculty
+ * @access  Private/Faculty
+ */
 const getFacultyStats = async (req, res) => {
     try {
         const facultyId = req.user._id;
 
-        const totalAssignments = await Assignment.countDocuments({ facultyId });
-
-        // Get all assignment IDs for this faculty to count submissions
-        const assignmentsList = await Assignment.find({ facultyId }).select('_id');
+        // Find all assignments created by this faculty member
+        const assignmentsList = await Assignment.find({ facultyId });
         const assignmentIds = assignmentsList.map(a => a._id);
 
-        const totalSubmissions = await Submission.countDocuments({ assignmentId: { $in: assignmentIds } });
-        const evaluatedSubmissions = await Submission.countDocuments({
+        // Get counts for submissions and assignments
+        const [totalSubmissions, evaluatedSubmissions, totalAssignments] = await Promise.all([
+            Submission.countDocuments({ assignmentId: { $in: assignmentIds } }),
+            Submission.countDocuments({ assignmentId: { $in: assignmentIds }, status: 'graded' }),
+            Assignment.countDocuments({ facultyId })
+        ]);
+
+        // 1. Get evaluation trend for the last 7 days
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const trendData = await Submission.aggregate([
+            {
+                $match: {
+                    assignmentId: { $in: assignmentIds },
+                    status: 'graded',
+                    updatedAt: { $gte: sevenDaysAgo }
+                }
+            },
+            {
+                $group: {
+                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$updatedAt" } },
+                    count: { $sum: 1 }
+                }
+            },
+            { $sort: { "_id": 1 } }
+        ]);
+
+        // 2. Calculate average score for the class
+        const gradedSubmissions = await Submission.find({
             assignmentId: { $in: assignmentIds },
-            status: 'graded'
-        });
+            status: 'graded',
+            marks: { $ne: null }
+        }).select('marks');
 
-        // 1. Fetch 5 Recent Assignments with submission counts and subjects
-        const recentAssignmentsRaw = await Assignment.find({ facultyId })
-            .sort({ createdAt: -1 })
-            .limit(5);
+        const avgPerformance = gradedSubmissions.length > 0
+            ? (gradedSubmissions.reduce((acc, s) => acc + s.marks, 0) / gradedSubmissions.length).toFixed(1)
+            : 0;
 
-        // Populate subjects manually for recent assignments
-        const SubjectMaster = require('../schemas/admin/SubjectMaster');
-        const recentAssignments = await Promise.all(recentAssignmentsRaw.map(async (ass) => {
+        // 3. Get the 5 most recent assignments with counts
+        const recentAssignments = await Promise.all(assignmentsList.slice(-5).reverse().map(async (ass) => {
             const subject = await SubjectMaster.findById(ass.subjectId);
             const subCount = await Submission.countDocuments({ assignmentId: ass._id });
             return {
@@ -88,23 +120,19 @@ const getFacultyStats = async (req, res) => {
             };
         }));
 
-        // 2. Fetch 5 Pending Evaluations (submissions that are 'submitted' but not 'graded')
-        const pendingEvaluationsListRaw = await Submission.find({
+        // 4. Get a short list of submissions waiting to be graded
+        const pendingList = await Submission.find({
             assignmentId: { $in: assignmentIds },
             status: 'submitted'
-        })
-            .sort({ submittedAt: -1 })
-            .limit(5);
+        }).sort({ submittedAt: -1 }).limit(5);
 
-        // Populate for pending evaluations
-        const StudentProfile = require('../schemas/student/StudentProfile');
-        const pendingEvaluationsData = await Promise.all(pendingEvaluationsListRaw.map(async (sub) => {
+        const pendingEvaluationsData = await Promise.all(pendingList.map(async (sub) => {
             const student = await StudentProfile.findOne({ userId: sub.studentId });
-            const assignment = await Assignment.findById(sub.assignmentId);
+            const assignment = assignmentsList.find(a => a._id.toString() === sub.assignmentId.toString());
             return {
                 ...sub.toObject(),
                 studentName: student ? student.name : 'Unknown Student',
-                assignmentTitle: assignment ? assignment.title : 'Unknown Assignment'
+                assignmentTitle: assignment ? assignment.title : 'Unknown'
             };
         }));
 
@@ -113,59 +141,103 @@ const getFacultyStats = async (req, res) => {
             totalSubmissions,
             evaluatedSubmissions,
             pendingEvaluations: totalSubmissions - evaluatedSubmissions,
+            avgPerformance,
+            evaluationTrend: trendData,
             recentAssignments,
-            pendingEvaluationsData: pendingEvaluationsData
+            pendingEvaluationsData
         });
     } catch (error) {
-        console.error('Error in getFacultyStats:', error);
-        res.status(500).json({ message: error.message });
+        console.error('Error fetching faculty dashboard stats:', error);
+        res.status(500).json({
+            message: 'Failed to fetch faculty stats'
+        });
     }
 };
 
-// @desc    Get Student Dashboard Stats
-// @route   GET /api/dashboard/student
-// @access  Private/Student
+/**
+ * @desc    Get data for the Student Dashboard
+ * @route   GET /api/dashboard/student
+ * @access  Private/Student
+ */
 const getStudentStats = async (req, res) => {
     try {
         const studentId = req.user._id;
-
-        const totalSubmissions = await Submission.countDocuments({ studentId });
-        const gradedSubmissions = await Submission.countDocuments({
-            studentId,
-            status: 'graded'
-        });
-
-        // Get student's department to find relevant assignments
         const studentProfile = await StudentProfile.findOne({ userId: studentId });
-        let pendingAssignments = 0;
 
+        // Get submission counts and graded submissions
+        const [totalSubmissions, gradedSubmissionsAll] = await Promise.all([
+            Submission.countDocuments({ studentId }),
+            Submission.find({ studentId, status: 'graded' }).sort({ updatedAt: -1 })
+        ]);
+
+        // 1. Get history of the last 5 grades
+        const gradeHistory = await Promise.all(gradedSubmissionsAll.slice(0, 5).map(async (sub) => {
+            const assignment = await Assignment.findById(sub.assignmentId);
+            const subject = assignment ? await SubjectMaster.findById(assignment.subjectId) : null;
+            return {
+                title: assignment ? assignment.title : 'Assignment',
+                subject: subject ? subject.subjectName : 'General',
+                marks: sub.marks,
+                date: sub.updatedAt
+            };
+        }));
+
+        // 2. Count assignments that have not been submitted yet
+        let pendingAssignmentsCount = 0;
         if (studentProfile && studentProfile.departmentId) {
-            // Find subjects in student's department
-            const deptSubjects = await SubjectMaster.find({
-                departmentId: studentProfile.departmentId
-            }).select('_id');
-
-            const deptSubjectIds = deptSubjects.map(s => s._id);
-
-            // Get IDs of assignments already submitted
-            const submittedAssignmentIds = await Submission.find({ studentId }).distinct('assignmentId');
-
-            // Pending = Assignments in Dept Subjects - Already Submitted (that are still open)
-            pendingAssignments = await Assignment.countDocuments({
-                subjectId: { $in: deptSubjectIds },
-                _id: { $nin: submittedAssignmentIds },
-                dueDate: { $gte: new Date() } // Only count if not yet due
+            const deptSubjects = await SubjectMaster.find({ departmentId: studentProfile.departmentId }).distinct('_id');
+            const submittedIds = await Submission.find({ studentId }).distinct('assignmentId');
+            pendingAssignmentsCount = await Assignment.countDocuments({
+                subjectId: { $in: deptSubjects },
+                _id: { $nin: submittedIds },
+                dueDate: { $gte: new Date() }
             });
         }
 
+        // 3. Calculate mastery (average marks) for each subject
+        const subjectMastery = {};
+        for (const sub of gradedSubmissionsAll) {
+            const assignment = await Assignment.findById(sub.assignmentId);
+            if (assignment) {
+                const subId = assignment.subjectId.toString();
+                if (!subjectMastery[subId]) {
+                    const subject = await SubjectMaster.findById(assignment.subjectId);
+                    subjectMastery[subId] = { name: subject ? subject.subjectName : 'Unknown', total: 0, count: 0 };
+                }
+                subjectMastery[subId].total += sub.marks;
+                subjectMastery[subId].count += 1;
+            }
+        }
+
+        const masteryData = Object.values(subjectMastery).map(m => ({
+            subject: m.name,
+            score: Number((m.total / m.count).toFixed(1))
+        }));
+
+        // 4. Calculate overall average performance
+        const allMarks = gradedSubmissionsAll.map(s => s.marks);
+        const globalAverage = allMarks.length > 0
+            ? Number((allMarks.reduce((a, b) => a + b, 0) / allMarks.length).toFixed(1))
+            : 0;
+
+        const topSubject = masteryData.length > 0
+            ? masteryData.reduce((prev, current) => (prev.score > current.score) ? prev : current)
+            : null;
+
         res.status(200).json({
             totalSubmissions,
-            gradedSubmissions,
-            pendingAssignments,
+            gradedSubmissions: gradedSubmissionsAll.length,
+            pendingAssignments: pendingAssignmentsCount,
+            gradeHistory,
+            masteryData,
+            globalAverage,
+            topSubject
         });
     } catch (error) {
-        console.error('Error in getStudentStats:', error);
-        res.status(500).json({ message: error.message });
+        console.error('Error fetching student dashboard stats:', error);
+        res.status(500).json({
+            message: 'Failed to fetch student stats'
+        });
     }
 };
 

@@ -5,18 +5,26 @@ import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
 import socket, { connectSocket, disconnectSocket } from '../../utils/socket';
 
+/**
+ * ManageSubjects: Administrative portal for subject management.
+ * Handles CRUD operations and faculty assignments for academic modules.
+ */
 const ManageSubjects = () => {
+    // Data state
     const [subjects, setSubjects] = useState([]);
     const [filteredSubjects, setFilteredSubjects] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [faculties, setFaculties] = useState([]);
 
-    // Form state
+    // Modal and Form state
     const [name, setName] = useState('');
     const [code, setCode] = useState('');
     const [selectedFacultyId, setSelectedFacultyId] = useState('');
     const [showAddModal, setShowAddModal] = useState(false);
 
+    /**
+     * Core data fetcher for subjects and faculty members.
+     */
     const fetchData = async () => {
         try {
             const [subjectsRes, usersRes] = await Promise.all([
@@ -26,7 +34,7 @@ const ManageSubjects = () => {
             setSubjects(subjectsRes.data);
             setFilteredSubjects(subjectsRes.data);
 
-            // Filter only faculty members
+            // Filter only faculty members for assignment dropdown
             const facultyList = usersRes.data.filter(u => u.role === 'faculty');
             setFaculties(facultyList);
         } catch (err) {
@@ -34,10 +42,12 @@ const ManageSubjects = () => {
         }
     };
 
+    // Lifecycle Synchronization
     useEffect(() => {
         fetchData();
         connectSocket();
 
+        // Sync with global system events via Socket.io
         socket.on('subject_added', fetchData);
         socket.on('subject_deleted', fetchData);
 
@@ -48,6 +58,7 @@ const ManageSubjects = () => {
         };
     }, []);
 
+    // Incremental Search Logic
     useEffect(() => {
         let results = subjects;
         if (searchTerm) {
@@ -60,6 +71,9 @@ const ManageSubjects = () => {
         setFilteredSubjects(results);
     }, [searchTerm, subjects]);
 
+    /**
+     * Handles subject creation.
+     */
     const handleAddSubject = async (e) => {
         e.preventDefault();
         try {
@@ -77,6 +91,9 @@ const ManageSubjects = () => {
         }
     };
 
+    /**
+     * Removes a subject with a professional confirmation dialog.
+     */
     const handleDelete = async (id) => {
         Swal.fire({
             title: 'Are you sure?',
@@ -101,47 +118,45 @@ const ManageSubjects = () => {
     };
 
     return (
-        <div className="container-fluid py-4 animate__animated animate__fadeIn">
-            {/* Header Section */}
-            <div className="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h2 className="fw-bold text-dark mb-1">Manage Subjects</h2>
-                    <p className="text-secondary mb-0">Configure and organize academic modules</p>
-                </div>
-                <button
-                    className="btn btn-primary d-flex align-items-center gap-2 shadow-sm transition-hover"
-                    onClick={() => setShowAddModal(true)}
-                    style={{ height: '48px', borderRadius: '12px' }}
-                >
-                    <i className="bi bi-journal-plus"></i>
-                    Add Subject
-                </button>
-            </div>
-
-            {/* Filter Section */}
-            <div className="card border-0 shadow-sm mb-4" style={{ borderRadius: '16px' }}>
-                <div className="card-body p-3">
-                    <div className="row g-3">
-                        <div className="col-12">
-                            <div className="search-container">
-                                <i className="bi bi-search"></i>
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    placeholder="Search by subject name or course code..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                />
-                            </div>
-                        </div>
+        <div className="dashboard-analytics-root animate__animated animate__fadeIn">
+            {/* Header and Action Bar */}
+            <div className="mb-4">
+                <div className="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 className="fw-900 text-dark mb-1">Manage Subjects</h2>
+                        <p className="text-muted small fw-medium">
+                            <span className="status-pulse pulse-emerald"></span> Curriculum Management
+                        </p>
                     </div>
+                    <button
+                        className="btn btn-primary d-flex align-items-center gap-2 px-4 shadow-sm"
+                        onClick={() => setShowAddModal(true)}
+                        style={{ height: '45px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: '800' }}
+                    >
+                        <i className="bi bi-journal-plus fs-5"></i>
+                        Add Subject
+                    </button>
                 </div>
             </div>
 
-            {/* Subject List Table */}
-            <div className="card border-0 shadow-sm overflow-hidden" style={{ borderRadius: '16px' }}>
+            {/* Filter Hub */}
+            <div className="analytics-surface p-3 mb-4">
+                <div className="search-container border-0 bg-light-subtle">
+                    <i className="bi bi-search text-primary"></i>
+                    <input
+                        type="text"
+                        className="form-control"
+                        placeholder="Search academic modules or course codes..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+            </div>
+
+            {/* Curriculum Inventory Table */}
+            <div className="analytics-surface p-0 overflow-hidden">
                 <div className="table-responsive">
-                    <table className="table table-modern mb-0">
+                    <table className="table table-hover table-modern mb-0">
                         <thead>
                             <tr>
                                 <th className="ps-4">Subject Name</th>
@@ -195,13 +210,13 @@ const ManageSubjects = () => {
                 </div>
             </div>
 
-            {/* Minimalistic Professional Add Subject Modal */}
+            {/* Modal: Subject Integration Form */}
             {showAddModal && createPortal(
                 <div className="custom-modal-backdrop animate__animated animate__fadeIn animate__faster">
                     <div className="modal-content-premium animate__animated animate__zoomIn animate__faster">
                         <div className="modal-header-premium">
                             <div className="d-flex justify-content-between align-items-center">
-                                <h4 className="fw-bold mb-0 text-dark">Add New Subject</h4>
+                                <h4 className="fw-900 mb-0 text-dark">Add New Subject</h4>
                                 <button
                                     type="button"
                                     className="btn-close shadow-none"
