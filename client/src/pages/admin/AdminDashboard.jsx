@@ -11,33 +11,74 @@ const AdminDashboard = () => {
         pendingEvaluations: 0,
         recentActivities: []
     });
-    const fetchStats = async (isInitial = false) => {
+    const fetchStats = React.useCallback(async (isInitial = false) => {
         try {
             const response = await api.get('/dashboard/admin');
             setStats(response.data);
         } catch (error) {
             console.error("Error fetching admin stats:", error);
         }
-    };
+    }, []);
 
     useEffect(() => {
         fetchStats(true);
         connectSocket();
 
+        console.log('[DEBUG] Dashboard mounted, socket connected:', socket.id);
+
         // Real-time listeners
-        socket.on('user_added', () => fetchStats(false));
-        socket.on('user_deleted', () => fetchStats(false));
-        socket.on('subject_added', () => fetchStats(false));
-        socket.on('subject_deleted', () => fetchStats(false));
+        const handleServerChange = () => {
+            console.log('[DEBUG] Counts update event received');
+            fetchStats(false);
+        };
+
+        const handleNewActivity = (activity) => {
+            console.log('[DEBUG] Activity Logged event received:', activity.action, activity.user);
+
+            setStats(prev => {
+                const currentActivities = prev.recentActivities || [];
+                // Check if we already have this activity to avoid duplicates
+                const isDuplicate = currentActivities.some(a => a._id === activity._id);
+                if (isDuplicate) return prev;
+
+                // Prepend and limit to 5
+                const updatedActivities = [activity, ...currentActivities].slice(0, 5);
+                return {
+                    ...prev,
+                    recentActivities: updatedActivities
+                };
+            });
+
+            // Small delay before refreshing counts to ensure DB consistency
+            setTimeout(() => fetchStats(false), 800);
+        };
+
+        socket.on('user_added', handleServerChange);
+        socket.on('user_deleted', handleServerChange);
+        socket.on('user_updated', handleServerChange);
+        socket.on('subject_added', handleServerChange);
+        socket.on('subject_deleted', handleServerChange);
+        socket.on('subject_updated', handleServerChange);
+        socket.on('activity_logged', handleNewActivity);
+
+        socket.on('connect', () => console.log('[DEBUG] Socket CONNECTED'));
+        socket.on('disconnect', () => console.log('[DEBUG] Socket DISCONNECTED'));
+        socket.on('connect_error', (error) => console.error('[DEBUG] Socket connection error:', error));
 
         return () => {
-            socket.off('user_added');
-            socket.off('user_deleted');
-            socket.off('subject_added');
-            socket.off('subject_deleted');
+            socket.off('user_added', handleServerChange);
+            socket.off('user_deleted', handleServerChange);
+            socket.off('user_updated', handleServerChange);
+            socket.off('subject_added', handleServerChange);
+            socket.off('subject_deleted', handleServerChange);
+            socket.off('subject_updated', handleServerChange);
+            socket.off('activity_logged', handleNewActivity);
+            socket.off('connect');
+            socket.off('disconnect');
+            socket.off('connect_error');
             disconnectSocket();
         };
-    }, []);
+    }, [fetchStats]);
 
     // Removed blocking loading spinner for a "Zero-Loading" feel.
     // The UI now renders immediately with default/initial state.
@@ -47,9 +88,17 @@ const AdminDashboard = () => {
         const now = new Date();
         const diffInSeconds = Math.floor((now - date) / 1000);
 
-        if (diffInSeconds < 60) return 'Just now';
-        if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-        if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+        if (diffInSeconds < 30) return 'Just now';
+
+        const minutes = Math.floor(diffInSeconds / 60);
+        if (minutes < 60) return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ago`;
+
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
+
+        const days = Math.floor(hours / 24);
+        if (days >= 1) return `${days} ${days === 1 ? 'day' : 'days'} ago`;
+
         return date.toLocaleDateString();
     };
 
@@ -67,6 +116,11 @@ const AdminDashboard = () => {
                     icon="bi-people-fill"
                     color="#2563eb"
                     bgColor="#eff6ff"
+                    details={{
+                        Stu: stats.users?.roles?.student || 0,
+                        Fac: stats.users?.roles?.faculty || 0,
+                        Adm: stats.users?.roles?.admin || 0
+                    }}
                 />
                 <DashboardCard
                     title="Subjects"
@@ -92,23 +146,16 @@ const AdminDashboard = () => {
             </div>
 
             <div className="card shadow-sm border-0 overflow-hidden">
-                <div className="px-4 py-3 border-bottom bg-white d-flex justify-content-between align-items-center">
-                    <div>
-                        <h5 className="fw-900 mb-0">System Log</h5>
-                        <small className="text-muted">Latest 5 activities</small>
-                    </div>
-                    <span className="badge bg-light text-primary rounded-pill px-3 py-2 border">
-                        <i className="bi bi-circle-fill me-2 fs-6 animate__animated animate__pulse animate__infinite" style={{ fontSize: '8px' }}></i>
-                        Live Monitoring
-                    </span>
+                <div className="px-4 py-3 border-bottom bg-white">
+                    <h5 className="fw-900 mb-0">Recent Activity</h5>
                 </div>
                 <div className="table-responsive">
                     <table className="table table-hover table-modern mb-0">
                         <thead>
                             <tr>
-                                <th>Action / Target</th>
-                                <th>Executed By</th>
-                                <th className="text-end">Timestamp</th>
+                                <th>Action</th>
+                                <th>User</th>
+                                <th>Time</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -120,20 +167,15 @@ const AdminDashboard = () => {
                                                 <div className="rounded-circle bg-light d-flex align-items-center justify-content-center me-3" style={{ width: '32px', height: '32px' }}>
                                                     <i className="bi bi-lightning-fill text-primary" style={{ fontSize: '0.9rem' }}></i>
                                                 </div>
-                                                <div className="d-flex flex-column">
-                                                    <span className="fw-bold text-dark">{activity.action}</span>
-                                                    {activity.target && (
-                                                        <span className="text-muted" style={{ fontSize: '0.75rem' }}>
-                                                            {activity.target}
-                                                        </span>
-                                                    )}
-                                                </div>
+                                                <span className="fw-bold text-dark">{activity.action}</span>
                                             </div>
                                         </td>
                                         <td>
-                                            <span className="fw-semibold text-muted">{activity.user}</span>
+                                            <span className="fw-semibold text-muted">
+                                                {activity.action === 'New user registered' ? activity.target : activity.user}
+                                            </span>
                                         </td>
-                                        <td className="text-end fw-medium text-muted">
+                                        <td className="fw-medium text-muted">
                                             {formatTimeAgo(activity.timestamp)}
                                         </td>
                                     </tr>

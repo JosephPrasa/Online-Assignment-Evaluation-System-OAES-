@@ -46,9 +46,18 @@ const StudentAssignments = () => {
                                     <i className="bi bi-calendar-event me-1"></i>
                                     {new Date(a.dueDate).toLocaleDateString()}
                                 </div>
-                                <Link to={`/student/submit/${a._id}`} className="btn btn-primary btn-sm rounded-pill px-3 fw-800" style={{ fontSize: '0.7rem' }}>
-                                    Submit Work
-                                </Link>
+                                {a.isSubmitted ? (
+                                    <div className="d-flex align-items-center">
+                                        <span className="badge bg-success-subtle text-success rounded-pill px-3 py-2 fw-800 extra-small">
+                                            <i className="bi bi-check-circle-fill me-1"></i>
+                                            SUBMITTED
+                                        </span>
+                                    </div>
+                                ) : (
+                                    <Link to={`/student/submit/${a._id}`} className="btn btn-primary btn-sm rounded-pill px-3 fw-800" style={{ fontSize: '0.7rem' }}>
+                                        Submit Work
+                                    </Link>
+                                )}
                             </div>
                         </div>
                     </div>

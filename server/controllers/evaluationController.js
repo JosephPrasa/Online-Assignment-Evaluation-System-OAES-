@@ -35,7 +35,13 @@ const evaluateSubmission = async (req, res) => {
             return res.status(403).json({ message: 'Not authorized to evaluate this submission' });
         }
 
-        // Save the grading details
+        // Update the submission with marks and status
+        submission.status = 'graded';
+        submission.marks = marks;
+        submission.feedback = feedback;
+        await submission.save();
+
+        // Save the grading details record as well (for historical tracking if needed)
         const grading = await GradingRecord.create({
             submissionId: submission._id,
             marks,
@@ -43,12 +49,8 @@ const evaluateSubmission = async (req, res) => {
             gradedBy: req.user._id
         });
 
-        // Update the submission status to 'graded'
-        submission.status = 'graded';
-        await submission.save();
-
         // Log that an evaluation was completed
-        await logActivity('Assignment evaluated', req.user.name, assignment.title);
+        await logActivity('Assignment graded', req.user.name || req.user.username, assignment.title);
 
         res.json(grading);
     } catch (error) {

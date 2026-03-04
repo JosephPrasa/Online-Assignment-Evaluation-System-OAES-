@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Submission = require('../schemas/student/Submission');
 const Assignment = require('../schemas/faculty/Assignment');
 const StudentProfile = require('../schemas/student/StudentProfile');
@@ -34,14 +35,14 @@ const submitAssignment = async (req, res) => {
 
         // Save the submission details to the database
         const submission = await Submission.create({
-            assignmentId,
-            studentId: req.user._id,
+            assignmentId: new mongoose.Types.ObjectId(assignmentId),
+            studentId: new mongoose.Types.ObjectId(req.user._id),
             fileUrl: req.file.path,
             status: 'submitted'
         });
 
         // Log the activity
-        await logActivity('Assignment submitted', req.user.name, assignment.title);
+        await logActivity('Assignment submitted', req.user.name || req.user.username, assignment.title);
 
         res.status(201).json(submission);
     } catch (error) {
@@ -84,11 +85,15 @@ const getSubmissionsByAssignment = async (req, res) => {
         }, {});
 
         // Combine all data together
-        const populatedSubmissions = submissions.map(s => ({
-            ...s.toObject(),
-            studentId: studentMap[s.studentId?.toString()] || null,
-            assignmentId: assignmentMap[s.assignmentId?.toString()] || null
-        }));
+        const populatedSubmissions = submissions.map(s => {
+            const studentIdStr = s.studentId?.toString();
+            const assignmentIdStr = s.assignmentId?.toString();
+            return {
+                ...s.toObject(),
+                studentId: studentMap[studentIdStr] || { name: 'Unknown Student (Account Deleted)', _id: studentIdStr },
+                assignmentId: assignmentMap[assignmentIdStr] || { title: 'Assignment Not Found', _id: assignmentIdStr }
+            };
+        });
 
         res.json(populatedSubmissions);
     } catch (error) {
@@ -104,8 +109,9 @@ const getSubmissionsByAssignment = async (req, res) => {
  */
 const getMySubmissions = async (req, res) => {
     try {
+        const studentId = new mongoose.Types.ObjectId(req.user._id);
         // Find all submissions for the current user
-        const submissions = await Submission.find({ studentId: req.user._id });
+        const submissions = await Submission.find({ studentId });
 
         // Add assignment details (title, deadline, points)
         const assignmentIds = [...new Set(submissions.map(s => s.assignmentId))];
@@ -116,15 +122,23 @@ const getMySubmissions = async (req, res) => {
             return acc;
         }, {});
 
-        const populatedSubmissions = submissions.map(s => ({
-            ...s.toObject(),
-            assignmentId: assignmentMap[s.assignmentId?.toString()] || null
-        }));
+        const populatedSubmissions = submissions.map(s => {
+            try {
+                const assId = s.assignmentId?.toString();
+                return {
+                    ...s.toObject(),
+                    assignmentId: assId ? (assignmentMap[assId] || { title: 'Assignment Not Found', dueDate: new Date(), points: 100 }) : null
+                };
+            } catch (e) {
+                console.error(`Error mapping submission ${s._id}:`, e);
+                return s.toObject();
+            }
+        });
 
         res.json(populatedSubmissions);
     } catch (error) {
         console.error('Error fetching your submissions:', error);
-        res.status(500).json({ message: 'Could not get your submissions' });
+        res.status(500).json({ message: 'Internal server error while fetching submissions' });
     }
 };
 
@@ -141,13 +155,14 @@ const getSubmissionById = async (req, res) => {
         }
 
         // Add student and assignment details manually
-        const student = await StudentProfile.findOne({ userId: submission.studentId }).select('name email');
+        const student = await StudentProfile.findById(submission.studentId).select('name email');
         const assignment = await Assignment.findById(submission.assignmentId).select('title points');
 
+        console.log(`[DEBUG] Submission ${req.params.id} fileUrl: ${submission.fileUrl}`);
         res.json({
             ...submission.toObject(),
-            studentId: student || { name: 'Unknown' },
-            assignmentId: assignment || { title: 'Unknown', points: 0 }
+            studentId: student || { name: 'Unknown Student (Account Deleted)', _id: submission.studentId },
+            assignmentId: assignment || { title: 'Assignment Not Found', points: 100 }
         });
     } catch (error) {
         console.error('Error fetching submission details:', error);

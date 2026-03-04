@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../utils/api';
 import {
-    PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis
+    PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid
 } from 'recharts';
 
 const StudentDashboard = () => {
@@ -10,9 +10,9 @@ const StudentDashboard = () => {
         totalSubmissions: 0,
         gradedSubmissions: 0,
         pendingAssignments: 0,
-        globalAverage: 0,
         gradeHistory: [],
         masteryData: [],
+        globalAverage: 0,
         topSubject: null
     });
 
@@ -49,11 +49,13 @@ const StudentDashboard = () => {
                         <span className="status-pulse pulse-emerald"></span>
                         Academic Overview • <span className="text-primary fw-bold">v1.0.0-Active</span>
                     </p>
-                    <Link to="/student/assignments" className="text-decoration-none">
-                        <button className="btn btn-primary px-4 py-2 font-weight-bold shadow-sm" style={{ borderRadius: '100px', fontSize: '0.85rem' }}>
-                            <i className="bi bi-journal-plus me-2"></i>View Assignments
-                        </button>
-                    </Link>
+                    <div className="d-flex gap-2">
+                        <Link to="/student/assignments" className="text-decoration-none">
+                            <button className="btn btn-primary px-4 py-2 font-weight-bold shadow-sm" style={{ borderRadius: '100px', fontSize: '0.85rem' }}>
+                                <i className="bi bi-journal-plus me-2"></i>View Assignments
+                            </button>
+                        </Link>
+                    </div>
                 </div>
             </div>
 
@@ -112,8 +114,8 @@ const StudentDashboard = () => {
                                                 <td className="ps-4 py-3 fw-bold text-dark">{gh.title}</td>
                                                 <td className="py-3 text-muted">{gh.subject}</td>
                                                 <td className="text-end pe-4 py-3">
-                                                    <span className={`badge-modern-admin ${gh.marks >= 75 ? 'bg-success-subtle text-success' : 'bg-primary-subtle text-primary'}`}>
-                                                        {gh.marks} / 100
+                                                    <span className={`badge-modern-admin ${gh.marks >= (gh.points * 0.75) ? 'bg-success-subtle text-success' : 'bg-primary-subtle text-primary'}`}>
+                                                        {gh.marks} / {gh.points}
                                                     </span>
                                                 </td>
                                             </tr>
@@ -136,15 +138,19 @@ const StudentDashboard = () => {
                         <div style={{ height: '300px' }}>
                             {stats.masteryData && stats.masteryData.length > 0 ? (
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={stats.masteryData} layout="vertical">
-                                        <XAxis type="number" hide domain={[0, 100]} />
-                                        <YAxis dataKey="subject" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700 }} width={80} />
-                                        <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }} />
-                                        <Bar dataKey="score" fill="#3b82f6" radius={[0, 10, 10, 0]} barSize={20} />
+                                    <BarChart data={stats.masteryData}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                        <XAxis dataKey="subject" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600 }} dy={10} />
+                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600 }} domain={[0, 100]} />
+                                        <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                                        <Bar dataKey="score" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={40} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             ) : (
-                                <div className="d-flex align-items-center justify-content-center h-100 text-muted extra-small fw-bold">WAITING FOR EVALUATIONS</div>
+                                <div className="d-flex flex-column align-items-center justify-content-center h-100 text-muted">
+                                    <i className="bi bi-bar-chart-line fs-2 mb-2 opacity-25"></i>
+                                    <span className="extra-small fw-bold">WAITING FOR EVALUATIONS</span>
+                                </div>
                             )}
                         </div>
                     </div>

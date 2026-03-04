@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../../utils/api';
 import { toast } from 'react-toastify';
 
 const ViewSubmissions = () => {
@@ -14,15 +14,11 @@ const ViewSubmissions = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const token = JSON.parse(localStorage.getItem('user')).token;
-                const headers = { Authorization: `Bearer ${token}` };
-
                 // Fetch Submissions
-                const subRes = await axios.get(`http://localhost:5000/api/submissions/assignment/${id}`, { headers });
+                const subRes = await api.get(`/submissions/assignment/${id}`);
                 setSubmissions(subRes.data);
 
-                // Try to get assignment title from the first submission or a separate fetch if needed
-                // For now, if there are submissions, we can get it from there
+                // Try to get assignment title from the first submission
                 if (subRes.data.length > 0 && subRes.data[0].assignmentId) {
                     setAssignment(subRes.data[0].assignmentId);
                 }

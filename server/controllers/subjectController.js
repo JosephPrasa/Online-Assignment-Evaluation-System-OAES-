@@ -40,7 +40,7 @@ const createSubject = async (req, res) => {
         });
 
         // Log the activity
-        await logActivity('Subject created', req.user.name, subjectName);
+        await logActivity('Subject created', req.user.name || req.user.username, subjectName);
 
         // Tell connected users that a subject was added
         getIO().emit('subject_added', subject);
@@ -114,7 +114,11 @@ const deleteSubject = async (req, res) => {
         const subject = await SubjectMaster.findById(req.params.id);
 
         if (subject) {
+            const targetName = subject.subjectName;
             await subject.deleteOne();
+
+            // Log the deletion
+            await logActivity('Subject removed', req.user.name || req.user.username, targetName);
 
             // Tell connected users that a subject was deleted
             getIO().emit('subject_deleted', { _id: req.params.id });
@@ -129,8 +133,51 @@ const deleteSubject = async (req, res) => {
     }
 };
 
+/**
+ * @desc    Update a subject's details
+ * @route   PUT /api/subjects/:id
+ * @access  Private/Admin
+ */
+const updateSubject = async (req, res) => {
+    try {
+        const { subjectName, subjectCode, departmentId, facultyId } = req.body;
+        const subject = await SubjectMaster.findById(req.params.id);
+
+        if (!subject) {
+            return res.status(404).json({ message: 'Subject not found' });
+        }
+
+        // Check if subject code is being updated and if it's already taken
+        if (subjectCode && subjectCode !== subject.subjectCode) {
+            const subjectExists = await SubjectMaster.findOne({ subjectCode });
+            if (subjectExists) {
+                return res.status(400).json({ message: 'Subject code already in use' });
+            }
+        }
+
+        subject.subjectName = subjectName || subject.subjectName;
+        subject.subjectCode = subjectCode || subject.subjectCode;
+        subject.departmentId = departmentId || subject.departmentId;
+        subject.facultyId = facultyId || subject.facultyId;
+
+        await subject.save();
+
+        // Log the activity
+        await logActivity('Subject updated', req.user.name || req.user.username, subject.subjectName);
+
+        // Tell connected users that a subject was updated
+        getIO().emit('subject_updated', subject);
+
+        res.json(subject);
+    } catch (error) {
+        console.error('Error updating subject:', error);
+        res.status(400).json({ message: error.message });
+    }
+};
+
 module.exports = {
     createSubject,
     getSubjects,
-    deleteSubject
+    deleteSubject,
+    updateSubject
 };

@@ -18,7 +18,8 @@ const studentProfileSchema = new mongoose.Schema({
     enrollmentNumber: {
         type: String,
         unique: true,
-        index: true
+        index: true,
+        sparse: true
     },
     departmentId: {
         type: mongoose.Schema.Types.ObjectId,

@@ -1,6 +1,9 @@
+const mongoose = require('mongoose');
 const Assignment = require('../schemas/faculty/Assignment');
 const SubjectMaster = require('../schemas/admin/SubjectMaster');
 const FacultyProfile = require('../schemas/faculty/FacultyProfile');
+const Submission = require('../schemas/student/Submission');
+const logActivity = require('../utils/activityLogger');
 
 /**
  * Controller for handling assignments.
@@ -40,6 +43,8 @@ const createAssignment = async (req, res) => {
             facultyId: req.user._id
         });
 
+        await logActivity('Assignment created', req.user.name || req.user.username, assignment.title);
+
         res.status(201).json(assignment);
     } catch (error) {
         console.error("Error creating assignment:", error);
@@ -56,14 +61,14 @@ const getAssignmentsBySubject = async (req, res) => {
     try {
         let query = {};
         if (req.params.subjectId !== 'ALL') {
-            query.subjectId = req.params.subjectId;
+            query.subjectId = new mongoose.Types.ObjectId(req.params.subjectId);
         }
 
         // Find all matching assignments
         const assignments = await Assignment.find(query);
 
         // Get faculty names manually (since they are in a different database/collection)
-        const facultyIds = [...new Set(assignments.map(a => a.facultyId))];
+        const facultyIds = [...new Set(assignments.map(a => a.facultyId?.toString()))];
         const faculties = await FacultyProfile.find({ _id: { $in: facultyIds } }, 'name');
         const facultyMap = faculties.reduce((acc, fac) => {
             acc[fac._id.toString()] = fac;
@@ -71,7 +76,7 @@ const getAssignmentsBySubject = async (req, res) => {
         }, {});
 
         // Get subject names manually as well
-        const subjectIds = [...new Set(assignments.map(a => a.subjectId))];
+        const subjectIds = [...new Set(assignments.map(a => a.subjectId?.toString()))];
         const subjects = await SubjectMaster.find({ _id: { $in: subjectIds } }, 'subjectName subjectCode');
         const subjectMap = subjects.reduce((acc, sub) => {
             acc[sub._id.toString()] = sub;
@@ -79,10 +84,19 @@ const getAssignmentsBySubject = async (req, res) => {
         }, {});
 
         // Combine the assignment with the faculty and subject data
+        // If the user is a student, also check if they have submitted it
+        const studentId = req.user.role === 'student' ? new mongoose.Types.ObjectId(req.user._id) : null;
+        let submittedAssIds = new Set();
+        if (studentId) {
+            const studentSubs = await Submission.find({ studentId }).distinct('assignmentId');
+            submittedAssIds = new Set(studentSubs.map(id => id.toString()));
+        }
+
         const populatedAssignments = assignments.map(a => ({
             ...a.toObject(),
             subjectId: subjectMap[a.subjectId?.toString()] || null,
-            facultyId: facultyMap[a.facultyId?.toString()] || null
+            facultyId: facultyMap[a.facultyId?.toString()] || null,
+            isSubmitted: submittedAssIds.has(a._id.toString())
         }));
 
         res.json(populatedAssignments);
@@ -99,20 +113,25 @@ const getAssignmentsBySubject = async (req, res) => {
  */
 const getMyAssignments = async (req, res) => {
     try {
+        const facultyId = new mongoose.Types.ObjectId(req.user._id);
         // Find assignments where the facultyId matches the current user
-        const assignments = await Assignment.find({ facultyId: req.user._id });
+        const assignments = await Assignment.find({ facultyId });
 
         // Add subject names to the results
-        const subjectIds = [...new Set(assignments.map(a => a.subjectId))];
+        const subjectIds = [...new Set(assignments.map(a => a.subjectId?.toString()))];
         const subjects = await SubjectMaster.find({ _id: { $in: subjectIds } }, 'subjectName subjectCode');
         const subjectMap = subjects.reduce((acc, sub) => {
             acc[sub._id.toString()] = sub;
             return acc;
         }, {});
 
-        const populatedAssignments = assignments.map(a => ({
-            ...a.toObject(),
-            subjectId: subjectMap[a.subjectId?.toString()] || null
+        const populatedAssignments = await Promise.all(assignments.map(async (a) => {
+            const subCount = await Submission.countDocuments({ assignmentId: a._id });
+            return {
+                ...a.toObject(),
+                subjectId: subjectMap[a.subjectId?.toString()] || null,
+                submissionCount: subCount
+            };
         }));
 
         res.json(populatedAssignments);

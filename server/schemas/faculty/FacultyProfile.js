@@ -18,6 +18,12 @@ const facultyProfileSchema = new mongoose.Schema({
     designation: {
         type: String
     },
+    staffCode: {
+        type: String,
+        unique: true,
+        index: true,
+        sparse: true
+    },
     departmentId: {
         type: mongoose.Schema.Types.ObjectId,
         // required: true, // Made optional for now

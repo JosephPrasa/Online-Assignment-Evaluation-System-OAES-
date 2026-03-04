@@ -36,13 +36,8 @@ const getUsers = async (req, res) => {
     }
 };
 
-/**
- * @desc    Add a new user manually
- * @route   POST /api/users
- * @access  Private/Admin
- */
 const addUser = async (req, res) => {
-    const { name, email, role, departmentId } = req.body;
+    const { name, email, role, enrollmentNumber, staffCode } = req.body;
     let { password } = req.body;
 
     // Use default password if none is provided
@@ -67,11 +62,12 @@ const addUser = async (req, res) => {
             email,
             passwordHash,
             role: role || 'student',
-            departmentId
+            enrollmentNumber,
+            staffCode
         });
 
         // Log that a user was added
-        await logActivity('New user registered', req.user.name, user.name);
+        await logActivity('New user registered', req.user.name || req.user.username, user.name);
 
         // Update other dashboards in real-time
         getIO().emit('user_added', {
@@ -111,11 +107,15 @@ const deleteUser = async (req, res) => {
 
             // Remove user from the correct role collection
             const role = user.role;
+            const targetName = user.name;
             if (role === 'faculty') {
                 await FacultyProfile.findByIdAndDelete(req.params.id);
             } else if (role === 'student') {
                 await StudentProfile.findByIdAndDelete(req.params.id);
             }
+
+            // Log the deletion
+            await logActivity('User removed', req.user.name || req.user.username, targetName);
 
             // Update other dashboards in real-time
             getIO().emit('user_deleted', { _id: req.params.id });
@@ -130,8 +130,82 @@ const deleteUser = async (req, res) => {
     }
 };
 
+/**
+ * @desc    Update a user's details
+ * @route   PUT /api/users/:id
+ * @access  Private/Admin
+ */
+const updateUser = async (req, res) => {
+    const { name, email, enrollmentNumber, staffCode } = req.body;
+    try {
+        const user = await findUserById(req.params.id);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Check if email is being updated and if it's already taken
+        if (email && email !== user.email) {
+            const emailTaken = await findUserByEmail(email);
+            if (emailTaken) {
+                return res.status(400).json({ message: 'Email already in use' });
+            }
+        }
+
+        let updatedUser;
+        if (user.role === 'faculty') {
+            updatedUser = await FacultyProfile.findByIdAndUpdate(
+                req.params.id,
+                { name, email, staffCode },
+                { new: true, runValidators: true }
+            );
+        } else if (user.role === 'student') {
+            updatedUser = await StudentProfile.findByIdAndUpdate(
+                req.params.id,
+                { name, email, enrollmentNumber },
+                { new: true, runValidators: true }
+            );
+        } else if (user.role === 'admin') {
+            updatedUser = await Admin.findByIdAndUpdate(
+                req.params.id,
+                { name, email },
+                { new: true, runValidators: true }
+            );
+        }
+
+        if (!updatedUser) {
+            return res.status(404).json({ message: 'User profile not found' });
+        }
+
+        // Log the update
+        await logActivity('User role updated', req.user.name || req.user.username, updatedUser.name);
+
+        // Notify other clients
+        getIO().emit('user_updated', {
+            _id: updatedUser._id,
+            name: updatedUser.name,
+            email: updatedUser.email,
+            role: user.role,
+            enrollmentNumber: updatedUser.enrollmentNumber,
+            staffCode: updatedUser.staffCode
+        });
+
+        res.json({
+            _id: updatedUser._id,
+            name: updatedUser.name,
+            email: updatedUser.email,
+            role: user.role,
+            enrollmentNumber: updatedUser.enrollmentNumber,
+            staffCode: updatedUser.staffCode
+        });
+    } catch (error) {
+        console.error('Error updating user:', error);
+        res.status(400).json({ message: error.message });
+    }
+};
+
 module.exports = {
     getUsers,
     addUser,
-    deleteUser
+    deleteUser,
+    updateUser
 };

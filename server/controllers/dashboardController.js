@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Admin = require('../schemas/admin/Admin');
 const FacultyProfile = require('../schemas/faculty/FacultyProfile');
 const StudentProfile = require('../schemas/student/StudentProfile');
@@ -65,7 +66,7 @@ const getAdminStats = async (req, res) => {
  */
 const getFacultyStats = async (req, res) => {
     try {
-        const facultyId = req.user._id;
+        const facultyId = new mongoose.Types.ObjectId(req.user._id);
 
         // Find all assignments created by this faculty member
         const assignmentsList = await Assignment.find({ facultyId });
@@ -127,16 +128,17 @@ const getFacultyStats = async (req, res) => {
         }).sort({ submittedAt: -1 }).limit(5);
 
         const pendingEvaluationsData = await Promise.all(pendingList.map(async (sub) => {
-            const student = await StudentProfile.findOne({ userId: sub.studentId });
+            const student = await StudentProfile.findById(sub.studentId);
             const assignment = assignmentsList.find(a => a._id.toString() === sub.assignmentId.toString());
             return {
                 ...sub.toObject(),
-                studentName: student ? student.name : 'Unknown Student',
-                assignmentTitle: assignment ? assignment.title : 'Unknown'
+                studentName: student ? student.name : 'Unknown Student (Account Deleted)',
+                assignmentTitle: assignment ? assignment.title : 'Assignment Not Found'
             };
         }));
 
         res.status(200).json({
+            facultyId: facultyId,
             totalAssignments,
             totalSubmissions,
             evaluatedSubmissions,
@@ -161,8 +163,8 @@ const getFacultyStats = async (req, res) => {
  */
 const getStudentStats = async (req, res) => {
     try {
-        const studentId = req.user._id;
-        const studentProfile = await StudentProfile.findOne({ userId: studentId });
+        const studentId = new mongoose.Types.ObjectId(req.user._id);
+        const studentProfile = await StudentProfile.findById(studentId);
 
         // Get submission counts and graded submissions
         const [totalSubmissions, gradedSubmissionsAll] = await Promise.all([
@@ -170,43 +172,53 @@ const getStudentStats = async (req, res) => {
             Submission.find({ studentId, status: 'graded' }).sort({ updatedAt: -1 })
         ]);
 
-        // 1. Get history of the last 5 grades
-        const gradeHistory = await Promise.all(gradedSubmissionsAll.slice(0, 5).map(async (sub) => {
+        // 1. Get history of the last 5 grades (only those with marks)
+        const gradedWithMarks = gradedSubmissionsAll.filter(s => s.marks !== null);
+        const gradeHistory = await Promise.all(gradedWithMarks.slice(0, 5).map(async (sub) => {
             const assignment = await Assignment.findById(sub.assignmentId);
             const subject = assignment ? await SubjectMaster.findById(assignment.subjectId) : null;
             return {
                 title: assignment ? assignment.title : 'Assignment',
                 subject: subject ? subject.subjectName : 'General',
                 marks: sub.marks,
+                points: assignment ? assignment.points : 100,
                 date: sub.updatedAt
             };
         }));
 
         // 2. Count assignments that have not been submitted yet
         let pendingAssignmentsCount = 0;
-        if (studentProfile && studentProfile.departmentId) {
-            const deptSubjects = await SubjectMaster.find({ departmentId: studentProfile.departmentId }).distinct('_id');
-            const submittedIds = await Submission.find({ studentId }).distinct('assignmentId');
-            pendingAssignmentsCount = await Assignment.countDocuments({
-                subjectId: { $in: deptSubjects },
-                _id: { $nin: submittedIds },
-                dueDate: { $gte: new Date() }
-            });
+        try {
+            if (studentProfile && studentProfile.departmentId) {
+                const deptSubjects = await SubjectMaster.find({ departmentId: studentProfile.departmentId }).distinct('_id');
+                const submittedIds = await Submission.find({ studentId }).distinct('assignmentId');
+                pendingAssignmentsCount = await Assignment.countDocuments({
+                    subjectId: { $in: deptSubjects },
+                    _id: { $nin: submittedIds },
+                    dueDate: { $gte: new Date() }
+                });
+            }
+        } catch (e) {
+            console.error("Error calculating pending assignments:", e);
         }
 
         // 3. Calculate mastery (average marks) for each subject
         const subjectMastery = {};
-        for (const sub of gradedSubmissionsAll) {
-            const assignment = await Assignment.findById(sub.assignmentId);
-            if (assignment) {
-                const subId = assignment.subjectId.toString();
-                if (!subjectMastery[subId]) {
-                    const subject = await SubjectMaster.findById(assignment.subjectId);
-                    subjectMastery[subId] = { name: subject ? subject.subjectName : 'Unknown', total: 0, count: 0 };
+        try {
+            for (const sub of gradedWithMarks) {
+                const assignment = await Assignment.findById(sub.assignmentId);
+                if (assignment) {
+                    const subId = assignment.subjectId.toString();
+                    if (!subjectMastery[subId]) {
+                        const subject = await SubjectMaster.findById(assignment.subjectId);
+                        subjectMastery[subId] = { name: subject ? subject.subjectName : 'Unknown', total: 0, count: 0 };
+                    }
+                    subjectMastery[subId].total += sub.marks;
+                    subjectMastery[subId].count += 1;
                 }
-                subjectMastery[subId].total += sub.marks;
-                subjectMastery[subId].count += 1;
             }
+        } catch (e) {
+            console.error("Error calculating subject mastery:", e);
         }
 
         const masteryData = Object.values(subjectMastery).map(m => ({

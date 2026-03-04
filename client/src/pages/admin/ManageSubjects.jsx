@@ -21,6 +21,8 @@ const ManageSubjects = () => {
     const [code, setCode] = useState('');
     const [selectedFacultyId, setSelectedFacultyId] = useState('');
     const [showAddModal, setShowAddModal] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editingSubject, setEditingSubject] = useState(null);
 
     /**
      * Core data fetcher for subjects and faculty members.
@@ -49,10 +51,12 @@ const ManageSubjects = () => {
 
         // Sync with global system events via Socket.io
         socket.on('subject_added', fetchData);
+        socket.on('subject_updated', fetchData);
         socket.on('subject_deleted', fetchData);
 
         return () => {
             socket.off('subject_added');
+            socket.off('subject_updated');
             socket.off('subject_deleted');
             disconnectSocket();
         };
@@ -88,6 +92,32 @@ const ManageSubjects = () => {
             fetchData();
         } catch (err) {
             toast.error(err.response?.data?.message || 'Failed to add subject');
+        }
+    };
+
+    const handleEditClick = (subject) => {
+        setEditingSubject(subject);
+        setName(subject.subjectName || '');
+        setCode(subject.subjectCode || '');
+        setSelectedFacultyId(subject.facultyId?._id || '');
+        setShowEditModal(true);
+    };
+
+    const handleUpdateSubject = async (e) => {
+        e.preventDefault();
+        try {
+            await api.put(`/subjects/${editingSubject._id}`, {
+                subjectName: name,
+                subjectCode: code,
+                facultyId: selectedFacultyId || null
+            });
+            toast.success('Subject updated successfully');
+            setName(''); setCode(''); setSelectedFacultyId('');
+            setShowEditModal(false);
+            setEditingSubject(null);
+            fetchData();
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Failed to update subject');
         }
     };
 
@@ -181,7 +211,11 @@ const ManageSubjects = () => {
                                             <span className="text-dark fw-medium">{s.facultyId?.name || 'Not Assigned'}</span>
                                         </td>
                                         <td className="text-end pe-4">
-                                            <button className="btn btn-link text-primary p-1 me-2" title="Edit">
+                                            <button
+                                                className="btn btn-link text-primary p-1 me-2"
+                                                title="Edit"
+                                                onClick={() => handleEditClick(s)}
+                                            >
                                                 <i className="bi bi-pencil-square" style={{ fontSize: '1.2rem' }}></i>
                                             </button>
                                             <button
@@ -288,6 +322,100 @@ const ManageSubjects = () => {
                                     className="btn-premium-primary flex-grow-1 shadow-sm"
                                 >
                                     Add Subject
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* Modal: Subject EDIT Form */}
+            {showEditModal && createPortal(
+                <div className="custom-modal-backdrop animate__animated animate__fadeIn animate__faster">
+                    <div className="modal-content-premium animate__animated animate__zoomIn animate__faster">
+                        <div className="modal-header-premium">
+                            <div className="d-flex justify-content-between align-items-center">
+                                <h4 className="fw-900 mb-0 text-dark">Edit Subject</h4>
+                                <button
+                                    type="button"
+                                    className="btn-close shadow-none"
+                                    onClick={() => {
+                                        setShowEditModal(false);
+                                        setEditingSubject(null);
+                                        setName(''); setCode(''); setSelectedFacultyId('');
+                                    }}
+                                ></button>
+                            </div>
+                        </div>
+
+                        <form onSubmit={handleUpdateSubject}>
+                            <div className="modal-body-premium">
+                                <div className="input-group-premium">
+                                    <label className="input-label-premium">Subject Name</label>
+                                    <div className="input-wrapper-premium">
+                                        <input
+                                            type="text"
+                                            className="form-control"
+                                            placeholder="e.g., Data Structures"
+                                            value={name}
+                                            onChange={(e) => setName(e.target.value)}
+                                            required
+                                        />
+                                        <i className="bi bi-journal-bookmark"></i>
+                                    </div>
+                                </div>
+
+                                <div className="input-group-premium">
+                                    <label className="input-label-premium">Subject Code</label>
+                                    <div className="input-wrapper-premium">
+                                        <input
+                                            type="text"
+                                            className="form-control"
+                                            placeholder="e.g., CS301"
+                                            value={code}
+                                            onChange={(e) => setCode(e.target.value)}
+                                            required
+                                        />
+                                        <i className="bi bi-hash"></i>
+                                    </div>
+                                </div>
+
+                                <div className="input-group-premium">
+                                    <label className="input-label-premium">Assign Faculty</label>
+                                    <div className="input-wrapper-premium">
+                                        <select
+                                            className="form-select"
+                                            value={selectedFacultyId}
+                                            onChange={(e) => setSelectedFacultyId(e.target.value)}
+                                        >
+                                            <option value="">Select Faculty</option>
+                                            {faculties.map(f => (
+                                                <option key={f._id} value={f._id}>{f.name}</option>
+                                            ))}
+                                        </select>
+                                        <i className="bi bi-person-badge"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="modal-footer-premium">
+                                <button
+                                    type="button"
+                                    className="btn-premium-secondary flex-grow-1"
+                                    onClick={() => {
+                                        setShowEditModal(false);
+                                        setEditingSubject(null);
+                                        setName(''); setCode(''); setSelectedFacultyId('');
+                                    }}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="btn-premium-primary flex-grow-1 shadow-sm"
+                                >
+                                    Save Changes
                                 </button>
                             </div>
                         </form>
