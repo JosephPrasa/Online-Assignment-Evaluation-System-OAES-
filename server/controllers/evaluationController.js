@@ -9,6 +9,7 @@ const logActivity = require('../utils/activityLogger');
  * Controller for evaluating student work and generating statistics for reports.
  */
 
+
 /**
  * @desc    Grade a student's submission
  * @route   PUT /api/submissions/:id/evaluate
