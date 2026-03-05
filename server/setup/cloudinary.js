@@ -9,15 +9,13 @@ cloudinary.config({
 
 const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
-    params: async (req, file) => {
-        const uniqueSuffix = Date.now();
-        const ext = file.originalname.split('.').pop();
-        const name = file.originalname.split('.').slice(0, -1).join('.');
-        return {
-            folder: 'oaes_assignments',
-            resource_type: 'raw',
-            public_id: `${name}_${uniqueSuffix}.${ext}`,
-        };
+    params: {
+        folder: 'oaes_assignments',
+        resource_type: 'auto',
+        public_id: (req, file) => {
+            const name = file.originalname.split('.').slice(0, -1).join('.');
+            return `${name.replace(/\s+/g, '_')}_${Date.now()}`;
+        }
     }
 });
 

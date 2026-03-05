@@ -156,6 +156,20 @@ body {
   color: #16a34a;
 }
 
+.badge-modern-admin {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap !important;
+  min-width: fit-content;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700 !important;
+  padding: 4px 12px !important;
+  border-radius: 8px !important;
+  font-size: 0.8rem !important;
+  line-height: 1.2;
+}
+
 /* Modern Table */
 .table-modern thead th {
   background-color: #f8fafc;
