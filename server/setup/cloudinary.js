@@ -14,7 +14,7 @@ const storage = new CloudinaryStorage({
         resource_type: 'auto',
         public_id: (req, file) => {
             const name = file.originalname.split('.').slice(0, -1).join('.');
-            return `${name.replace(/\s+/g, '_')}_${Date.now()}`;
+            return `${name.replace(/\s+/g, '_')}_${Date.now()}`; 
         }
     }
 });
