@@ -92,7 +92,9 @@ const googleAuthSuccess = (req, res) => {
 };
 
 module.exports = {
+
     login,
     getMe,
     googleAuthSuccess
+    
 };
