@@ -24,8 +24,10 @@ const ManageUsers = () => {
     const fetchUsers = async () => {
         try {
             const { data } = await api.get('/users');
-            setUsers(Array.isArray(data) ? data : []);
-            setFilteredUsers(Array.isArray(data) ? data : []);
+            // Support both array response and paginated object response { users: [] }
+            const usersData = Array.isArray(data) ? data : (data.users || []);
+            setUsers(usersData);
+            setFilteredUsers(usersData);
         } catch (err) {
             toast.error('Failed to fetch users');
             console.error(err);

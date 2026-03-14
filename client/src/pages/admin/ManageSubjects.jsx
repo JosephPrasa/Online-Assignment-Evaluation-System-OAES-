@@ -37,7 +37,9 @@ const ManageSubjects = () => {
             setFilteredSubjects(subjectsRes.data);
 
             // Filter only faculty members for assignment dropdown
-            const facultyList = usersRes.data.filter(u => u.role === 'faculty');
+            // Support both array response and paginated object response { users: [] }
+            const usersData = Array.isArray(usersRes.data) ? usersRes.data : (usersRes.data.users || []);
+            const facultyList = usersData.filter(u => u.role === 'faculty');
             setFaculties(facultyList);
         } catch (err) {
             toast.error('Failed to fetch required data');
