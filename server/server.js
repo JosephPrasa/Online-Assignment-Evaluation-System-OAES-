@@ -15,12 +15,14 @@ const passport = require('passport');
 // Load passport configuration
 require('./setup/passport');
 
+
 // Middleware
 app.use(helmet()); // Security headers
 app.use(compression()); // Compress responses
 app.use(express.json());
 app.use(cors());
 app.use(passport.initialize());
+
 
 
 // Rate Limiting
