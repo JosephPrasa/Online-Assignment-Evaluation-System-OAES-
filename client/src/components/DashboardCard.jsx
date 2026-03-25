@@ -13,7 +13,7 @@ const DashboardCard = ({ title, value, icon, color, bgColor, details }) => {
             >
                 {/* Primary Decorative Background Circle */}
                 <div
-                    style={{
+                    style={{ 
                         position: 'absolute',
                         width: '140px',
                         height: '140px',
