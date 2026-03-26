@@ -29,6 +29,7 @@ const DashboardCard = ({ title, value, icon, color, bgColor, details }) => {
                 {/* Secondary Decorative Background Circle */}
                 <div
                     style={{
+                        
                         position: 'absolute',
                         width: '80px',
                         height: '80px',
@@ -39,6 +40,7 @@ const DashboardCard = ({ title, value, icon, color, bgColor, details }) => {
                         left: '-20px',
                         zIndex: 0,
                         transition: 'all 0.5s ease'
+
                     }}
                 />
 
