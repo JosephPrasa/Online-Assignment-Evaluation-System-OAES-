@@ -31,8 +31,6 @@ const StudentDashboard = () => {
         return () => clearInterval(interval);
     }, []);
 
-    // Removed blocking loading spinner for a "Zero-Loading" feel.
-    // The UI now renders immediately with default/initial state.
 
     const pieData = [
         { name: 'Submitted', value: stats.totalSubmissions || 0, color: '#3b82f6' },
@@ -59,7 +57,6 @@ const StudentDashboard = () => {
                 </div>
             </div>
 
-            {/* Top Metric Grid */}
             <div className="row g-4 mb-4">
                 <div className="col-md-4">
                     <div className="analytics-surface">
@@ -91,7 +88,6 @@ const StudentDashboard = () => {
             </div>
 
             <div className="row g-4 mb-4">
-                {/* Grade History */}
                 <div className="col-lg-8">
                     <div className="analytics-surface p-0 overflow-hidden">
                         <div className="px-4 py-4 border-bottom">
@@ -131,13 +127,12 @@ const StudentDashboard = () => {
                     </div>
                 </div>
 
-                {/* Subject Mastery Bar Chart */}
                 <div className="col-lg-4">
                     <div className="analytics-surface">
                         <h6 className="fw-900 text-dark mb-4">Subject Mastery</h6>
                         <div style={{ height: '300px' }}>
                             {stats.masteryData && stats.masteryData.length > 0 ? (
-                                <ResponsiveContainer width="100%" height="100%">
+                                <ResponsiveContainer width="100%" height="100%" minHeight={300}>
                                     <BarChart data={stats.masteryData}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                                         <XAxis dataKey="subject" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600 }} dy={10} />
@@ -158,7 +153,6 @@ const StudentDashboard = () => {
             </div>
 
             <div className="row g-4">
-                {/* Submission progress */}
                 <div className="col-lg-6">
                     <div className="analytics-surface">
                         <div className="d-flex justify-content-between align-items-center mb-4">
@@ -166,7 +160,7 @@ const StudentDashboard = () => {
                             <span className="text-muted extra-small fw-bold">Workload Distribution</span>
                         </div>
                         <div className="chart-container" style={{ height: '240px' }}>
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer width="100%" height="100%" minHeight={240}>
                                 <PieChart>
                                     <Pie
                                         data={pieData}
@@ -192,7 +186,6 @@ const StudentDashboard = () => {
                     </div>
                 </div>
 
-                {/* Academic Insights */}
                 <div className="col-lg-6">
                     <div className="analytics-surface">
                         <h6 className="fw-900 text-dark mb-4">Academic Insights</h6>

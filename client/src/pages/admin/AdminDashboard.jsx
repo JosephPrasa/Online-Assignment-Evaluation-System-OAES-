@@ -24,24 +24,17 @@ const AdminDashboard = () => {
         fetchStats(true);
         connectSocket();
 
-        console.log('[DEBUG] Dashboard mounted, socket connected:', socket.id);
-
-        // Real-time listeners
+        connectSocket();        // Real-time listeners
         const handleServerChange = () => {
-            console.log('[DEBUG] Counts update event received');
             fetchStats(false);
         };
 
         const handleNewActivity = (activity) => {
-            console.log('[DEBUG] Activity Logged event received:', activity.action, activity.user);
-
             setStats(prev => {
                 const currentActivities = prev.recentActivities || [];
-                // Check if we already have this activity to avoid duplicates
                 const isDuplicate = currentActivities.some(a => a._id === activity._id);
                 if (isDuplicate) return prev;
 
-                // Prepend and limit to 5
                 const updatedActivities = [activity, ...currentActivities].slice(0, 5);
                 return {
                     ...prev,
@@ -49,7 +42,6 @@ const AdminDashboard = () => {
                 };
             });
 
-            // Small delay before refreshing counts to ensure DB consistency
             setTimeout(() => fetchStats(false), 800);
         };
 
@@ -61,9 +53,6 @@ const AdminDashboard = () => {
         socket.on('subject_updated', handleServerChange);
         socket.on('activity_logged', handleNewActivity);
 
-        socket.on('connect', () => console.log('[DEBUG] Socket CONNECTED'));
-        socket.on('disconnect', () => console.log('[DEBUG] Socket DISCONNECTED'));
-        socket.on('connect_error', (error) => console.error('[DEBUG] Socket connection error:', error));
 
         return () => {
             socket.off('user_added', handleServerChange);
@@ -80,8 +69,6 @@ const AdminDashboard = () => {
         };
     }, [fetchStats]);
 
-    // Removed blocking loading spinner for a "Zero-Loading" feel.
-    // The UI now renders immediately with default/initial state.
 
     const formatTimeAgo = (dateString) => {
         const date = new Date(dateString);

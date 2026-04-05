@@ -17,6 +17,7 @@ const ManageUsers = () => {
     const [role, setRole] = useState('student');
     const [enrollmentNumber, setEnrollmentNumber] = useState('');
     const [staffCode, setStaffCode] = useState('');
+    const [rollNumber, setRollNumber] = useState('');
     const [showAddModal, setShowAddModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
@@ -73,9 +74,9 @@ const ManageUsers = () => {
     const handleAddUser = async (e) => {
         e.preventDefault();
         try {
-            await api.post('/users', { name, email, role, enrollmentNumber, staffCode });
+            await api.post('/users', { name, email, role, enrollmentNumber, staffCode, rollNumber });
             toast.success('User added successfully');
-            setName(''); setEmail(''); setEnrollmentNumber(''); setStaffCode('');
+            setName(''); setEmail(''); setEnrollmentNumber(''); setStaffCode(''); setRollNumber('');
             setShowAddModal(false);
             fetchUsers();
         } catch (err) {
@@ -90,20 +91,20 @@ const ManageUsers = () => {
         setRole(user.role || 'student');
         setEnrollmentNumber(user.enrollmentNumber || '');
         setStaffCode(user.staffCode || '');
+        setRollNumber(user.rollNumber || '');
         setShowEditModal(true);
     };
 
     const handleUpdateUser = async (e) => {
         e.preventDefault();
         try {
-            await api.put(`/users/${editingUser._id}`, {
-                name,
-                email,
-                enrollmentNumber,
-                staffCode
-            });
+            const updateData = { name, email, rollNumber };
+            if (role === 'student') updateData.enrollmentNumber = enrollmentNumber;
+            if (role === 'faculty') updateData.staffCode = staffCode;
+
+            await api.put(`/users/${editingUser._id}`, updateData);
             toast.success('User updated successfully');
-            setName(''); setEmail(''); setEnrollmentNumber(''); setStaffCode('');
+            setName(''); setEmail(''); setEnrollmentNumber(''); setStaffCode(''); setRollNumber('');
             setShowEditModal(false);
             setEditingUser(null);
             fetchUsers();
@@ -224,7 +225,7 @@ const ManageUsers = () => {
                                     </td>
                                     <td className="text-muted text-center">{u.email}</td>
                                     <td className="text-center fw-medium color-primary">
-                                        {u.role === 'student' ? (u.enrollmentNumber || '-') : (u.staffCode || '-')}
+                                        {u.role === 'student' ? (u.rollNumber || u.enrollmentNumber || '-') : (u.staffCode || '-')}
                                     </td>
                                     <td className="text-center">
                                         <span className={getRoleBadgeClass(u.role)} style={{ textTransform: 'capitalize' }}>{u.role}</span>
@@ -315,6 +316,23 @@ const ManageUsers = () => {
                                             <i className="bi bi-person-badge"></i>
                                         </div>
                                     </div>
+
+                                    {/* Roll Number Field for Students Only */}
+                                    {role === 'student' && (
+                                        <div className="input-group-premium">
+                                            <label className="input-label-premium">Roll Number</label>
+                                            <div className="input-wrapper-premium">
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    placeholder="Enter student roll number"
+                                                    value={rollNumber}
+                                                    onChange={(e) => setRollNumber(e.target.value)}
+                                                />
+                                                <i className="bi bi-hash"></i>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {role === 'student' && (
                                         <div className="input-group-premium">
@@ -440,6 +458,23 @@ const ManageUsers = () => {
                                         </div>
                                         <small className="text-muted" style={{ fontSize: '0.7rem' }}>Role cannot be changed after creation.</small>
                                     </div>
+
+                                    {/* Roll Number Field for Students Only */}
+                                    {role === 'student' && (
+                                        <div className="input-group-premium">
+                                            <label className="input-label-premium">Roll Number</label>
+                                            <div className="input-wrapper-premium">
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    placeholder="Enter student roll number"
+                                                    value={rollNumber}
+                                                    onChange={(e) => setRollNumber(e.target.value)}
+                                                />
+                                                <i className="bi bi-hash"></i>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {role === 'student' && (
                                         <div className="input-group-premium">

@@ -35,8 +35,6 @@ const Reports = () => {
         return () => clearInterval(interval);
     }, [fetchStats]);
 
-    // Removed blocking loading spinner for a "Zero-Loading" feel.
-    // The UI now renders immediately with default/initial state.
 
     return (
         <div className="dashboard-analytics-root animate__animated animate__fadeIn">
@@ -50,7 +48,6 @@ const Reports = () => {
                 </div>
             </div>
 
-            {/* Top Metric Grid */}
             <div className="row g-4 mb-4">
                 <div className="col-md-3">
                     <div className="analytics-surface">
@@ -93,7 +90,6 @@ const Reports = () => {
             </div>
 
             <div className="row g-4">
-                {/* Main Trend Chart */}
                 <div className="col-lg-8">
                     <div className="analytics-surface">
                         <div className="d-flex justify-content-between align-items-center mb-4">
@@ -119,7 +115,6 @@ const Reports = () => {
                     </div>
                 </div>
 
-                {/* Performance Mix */}
                 <div className="col-lg-4">
                     <div className="analytics-surface">
                         <h6 className="fw-900 text-dark mb-4">Evaluation Quality Mix</h6>
@@ -158,7 +153,6 @@ const Reports = () => {
                 </div>
             </div>
 
-            {/* Bottom Row - Subject Rankings */}
             <div className="row g-4 mt-1">
                 <div className="col-lg-12">
                     <div className="analytics-surface">

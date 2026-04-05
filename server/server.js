@@ -6,39 +6,37 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
-// Connect to Databases
 require('./setup/db');
 
 const app = express();
 const passport = require('passport');
 
-// Load passport configuration
 require('./setup/passport');
 
 
-// Middleware
-app.use(helmet()); // Security headers
-app.use(compression()); // Compress responses
+app.use(helmet());
+app.use(compression());
 app.use(express.json());
 app.use(cors());
 app.use(passport.initialize());
 
 
 
-// Rate Limiting
 const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
+    windowMs: 15 * 60 * 1000,
+    max: 100,
     message: 'Too many requests from this IP, please try again after 15 minutes'
 });
 app.use('/api/', limiter);
 
-// Basic Route
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'API is healthy', timestamp: new Date() });
+});
+
 app.get('/', (req, res) => {
     res.send('Assignment Portal API is running...');
 });
 
-// Routes
 const authRoutes = require('./routes/authRoutes');
 const subjectRoutes = require('./routes/subjectRoutes');
 const userRoutes = require('./routes/userRoutes');
@@ -55,7 +53,6 @@ app.use('/api/submissions', submissionRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
-// Global Error Handler
 app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(err.status || 500).json({

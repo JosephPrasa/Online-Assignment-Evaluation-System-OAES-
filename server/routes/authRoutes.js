@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const passport = require('passport');
-const { login, getMe, googleAuthSuccess } = require('../controllers/authController');
+const { login, getMe, updateProfile, googleAuthSuccess } = require('../controllers/authController');
 const { protect } = require('../security/authMiddleware');
 
 router.post('/login', login);
 router.get('/me', protect, getMe);
+router.put('/update-profile', protect, updateProfile);
 
 // Google Auth Routes
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));

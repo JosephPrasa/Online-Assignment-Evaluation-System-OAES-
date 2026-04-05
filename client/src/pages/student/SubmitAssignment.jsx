@@ -10,12 +10,30 @@ const SubmitAssignment = () => {
     const navigate = useNavigate();
 
     const handleFileChange = (e) => {
-        setFile(e.target.files[0]);
+        const selectedFile = e.target.files[0];
+        if (selectedFile) {
+            if (selectedFile.type !== 'application/pdf') {
+                toast.error('Only PDF files are allowed');
+                e.target.value = '';
+                setFile(null);
+                return;
+            }
+            if (selectedFile.size > 5 * 1024 * 1024) {
+                toast.error('File size must be less than 5MB');
+                e.target.value = '';
+                setFile(null);
+                return;
+            }
+        }
+        setFile(selectedFile);
     };
 
     const handleUpload = async (e) => {
         e.preventDefault();
         if (!file) return toast.warning('Please select a file to upload');
+
+        if (file.type !== 'application/pdf') return toast.error('Please upload a PDF');
+        if (file.size > 5 * 1024 * 1024) return toast.error('File exceeds 5MB limit');
 
         const formData = new FormData();
         formData.append('assignmentId', id);
@@ -29,10 +47,10 @@ const SubmitAssignment = () => {
                 }
             });
             toast.success('Assignment delivered successfully!');
-            navigate('/student/submissions');
+            navigate('/student/dashboard');
         } catch (err) {
             console.error(err);
-            toast.error(err.response?.data?.message || 'Submission failed. Please try again.');
+            toast.error(err.response?.data?.message || 'Submission failed. Only PDF files up to 5MB are accepted.');
         } finally {
             setUploading(false);
         }
@@ -56,29 +74,30 @@ const SubmitAssignment = () => {
 
             <div className="row justify-content-center mt-5">
                 <div className="col-lg-6">
-                    <div className="analytics-surface p-5 text-center">
+                    <div className="analytics-surface p-5 text-center shadow-lg hover-elevate-subtle">
                         <div className="rounded-circle bg-primary-subtle d-inline-flex p-4 mb-4">
-                            <i className="bi bi-cloud-upload-fill fs-1 text-primary"></i>
+                            <i className="bi bi-file-earmark-pdf-fill fs-1 text-primary"></i>
                         </div>
                         <h4 className="fw-900 text-dark mb-2">Ready for Submission?</h4>
-                        <p className="text-muted mb-4 px-lg-5">Please ensure your work is complete and adheres to the assignment guidelines before uploading.</p>
+                        <p className="text-muted mb-4 px-lg-5 small">Please ensure your work is complete and adheres to the guidelines. <strong>Only PDF files</strong> up to <strong>5MB</strong> are accepted.</p>
 
                         <form onSubmit={handleUpload} className="text-start">
-                            <div className="mb-4 p-4 rounded-4 border-dashed" style={{ border: '2px dashed #e2e8f0' }}>
-                                <label className="form-label fw-800 text-dark small mb-3">Select File (PDF, ZIP, DOCX)</label>
+                            <div className="mb-4 p-4 rounded-4 border-dashed" style={{ border: '2px dashed #3b82f6', backgroundColor: '#f0f9ff' }}>
+                                <label className="form-label fw-800 text-dark small mb-3">Upload PDF Document</label>
                                 <input
                                     type="file"
                                     className="form-control form-control-modern"
                                     onChange={handleFileChange}
+                                    accept=".pdf"
                                     required
-                                    style={{ borderRadius: '12px' }}
+                                    style={{ borderRadius: '12px', borderColor: '#3b82f6' }}
                                 />
                                 {file && (
-                                    <div className="mt-3 p-3 bg-light rounded-3 d-flex align-items-center">
-                                        <i className="bi bi-file-earmark-check text-primary fs-4 me-3"></i>
+                                    <div className="mt-3 p-3 bg-white rounded-3 d-flex align-items-center shadow-sm">
+                                        <i className="bi bi-file-earmark-pdf text-danger fs-4 me-3"></i>
                                         <div className="overflow-hidden">
                                             <div className="fw-800 text-dark small text-truncate">{file.name}</div>
-                                            <div className="text-muted extra-small">{(file.size / 1024 / 1024).toFixed(2)} MB</div>
+                                            <div className="text-muted extra-small">{(file.size / 1024 / 1024).toFixed(2)} MB • PDF</div>
                                         </div>
                                     </div>
                                 )}
@@ -86,9 +105,9 @@ const SubmitAssignment = () => {
 
                             <button
                                 type="submit"
-                                className="btn btn-primary w-100 rounded-pill py-3 fw-900 shadow-sm hover-elevate"
+                                className="btn btn-primary w-100 rounded-pill py-3 fw-900 shadow-sm transition-all"
                                 disabled={uploading}
-                                style={{ letterSpacing: '0.05em' }}
+                                style={{ letterSpacing: '0.05em', height: '56px' }}
                             >
                                 {uploading ? (
                                     <>
@@ -96,7 +115,7 @@ const SubmitAssignment = () => {
                                         UPLOADING DOCUMENT...
                                     </>
                                 ) : (
-                                    'DELIVER ASSIGNMENT'
+                                    'CONFIRM & DELIVER'
                                 )}
                             </button>
                         </form>

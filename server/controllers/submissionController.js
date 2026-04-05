@@ -3,45 +3,48 @@ const Submission = require('../schemas/student/Submission');
 const Assignment = require('../schemas/faculty/Assignment');
 const StudentProfile = require('../schemas/student/StudentProfile');
 const logActivity = require('../utils/activityLogger');
+const { cloudinary } = require('../setup/cloudinary');
 
-/**
- * Controller for handling student assignment submissions.
- */
+// Generate a signed URL for a file
+const getSignedUrl = (fileUrl, cloudinaryId) => {
+    if (!fileUrl) return '#';
+    
+    // Force HTTPS and add a cache-buster timestamp
+    const separator = fileUrl.includes('?') ? '&' : '?';
+    return `${fileUrl.replace(/^http:/, 'https:')}${separator}t=${Date.now()}`;
+};
 
-/**
- * @desc    Submit an assignment file
- * @route   POST /api/submissions
- * @access  Private/Student
- */
+// Controller for student assignment submissions
+
+// Submit an assignment file
 const submitAssignment = async (req, res) => {
     try {
         const { assignmentId } = req.body;
 
-        // Make sure a file was actually uploaded
         if (!req.file) {
             return res.status(400).json({ message: 'No file uploaded' });
         }
 
-        // Check if the assignment exists
         const assignment = await Assignment.findById(assignmentId);
         if (!assignment) {
             return res.status(404).json({ message: 'Assignment not found' });
         }
 
-        // Check if the deadline has already passed
         if (new Date() > new Date(assignment.dueDate)) {
             return res.status(400).json({ message: 'Assignment deadline has passed' });
         }
 
-        // Save the submission details to the database
+        const fileUrl = req.file.secure_url || req.file.path;
+        const cloudinaryId = req.file.filename; 
+        
         const submission = await Submission.create({
             assignmentId: new mongoose.Types.ObjectId(assignmentId),
             studentId: new mongoose.Types.ObjectId(req.user._id),
-            fileUrl: req.file.path,
+            fileUrl: fileUrl.replace(/^http:/, 'https:'),
+            cloudinaryId: cloudinaryId,
             status: 'submitted'
         });
 
-        // Log the activity
         await logActivity('Assignment submitted', req.user.name || req.user.username, assignment.title);
 
         res.status(201).json(submission);
@@ -51,46 +54,32 @@ const submitAssignment = async (req, res) => {
     }
 };
 
-/**
- * @desc    Get submissions for a specific assignment
- * @route   GET /api/submissions/assignment/:assignmentId
- * @access  Private
- */
+// Get submissions for a specific assignment
 const getSubmissionsByAssignment = async (req, res) => {
     try {
         let query = { assignmentId: req.params.assignmentId };
+        if (req.user.role === 'student') query.studentId = req.user._id;
 
-        // If a student is asking, only show their own submission
-        if (req.user.role === 'student') {
-            query.studentId = req.user._id;
-        }
-
-        // Find matches in the database
         const submissions = await Submission.find(query);
-
-        // Add student names manually (since they are in another collection)
         const studentIds = [...new Set(submissions.map(s => s.studentId))];
         const students = await StudentProfile.find({ _id: { $in: studentIds } }, 'name email');
-        const studentMap = students.reduce((acc, stu) => {
-            acc[stu._id.toString()] = stu;
-            return acc;
-        }, {});
+        const studentMap = students.reduce((acc, stu) => { acc[stu._id.toString()] = stu; return acc; }, {});
 
-        // Add assignment titles manually
         const assignmentIds = [...new Set(submissions.map(s => s.assignmentId))];
         const assignments = await Assignment.find({ _id: { $in: assignmentIds } }, 'title');
-        const assignmentMap = assignments.reduce((acc, ass) => {
-            acc[ass._id.toString()] = ass;
-            return acc;
-        }, {});
+        const assignmentMap = assignments.reduce((acc, ass) => { acc[ass._id.toString()] = ass; return acc; }, {});
 
-        // Combine all data together
         const populatedSubmissions = submissions.map(s => {
             const studentIdStr = s.studentId?.toString();
             const assignmentIdStr = s.assignmentId?.toString();
+            const data = s.toObject();
+            
+            // Apply cache-busting to the URL
+            data.fileUrl = getSignedUrl(data.fileUrl, data.cloudinaryId);
+
             return {
-                ...s.toObject(),
-                studentId: studentMap[studentIdStr] || { name: 'Unknown Student (Account Deleted)', _id: studentIdStr },
+                ...data,
+                studentId: studentMap[studentIdStr] || { name: 'Unknown Student', _id: studentIdStr },
                 assignmentId: assignmentMap[assignmentIdStr] || { title: 'Assignment Not Found', _id: assignmentIdStr }
             };
         });
@@ -102,37 +91,27 @@ const getSubmissionsByAssignment = async (req, res) => {
     }
 };
 
-/**
- * @desc    Get all submissions made by the logged-in student
- * @route   GET /api/submissions/my
- * @access  Private/Student
- */
+// Get all submissions made by the logged-in student
 const getMySubmissions = async (req, res) => {
     try {
         const studentId = new mongoose.Types.ObjectId(req.user._id);
-        // Find all submissions for the current user
         const submissions = await Submission.find({ studentId });
 
-        // Add assignment details (title, deadline, points)
         const assignmentIds = [...new Set(submissions.map(s => s.assignmentId))];
         const assignments = await Assignment.find({ _id: { $in: assignmentIds } }, 'title dueDate points');
-
-        const assignmentMap = assignments.reduce((acc, ass) => {
-            acc[ass._id.toString()] = ass;
-            return acc;
-        }, {});
+        const assignmentMap = assignments.reduce((acc, ass) => { acc[ass._id.toString()] = ass; return acc; }, {});
 
         const populatedSubmissions = submissions.map(s => {
-            try {
-                const assId = s.assignmentId?.toString();
-                return {
-                    ...s.toObject(),
-                    assignmentId: assId ? (assignmentMap[assId] || { title: 'Assignment Not Found', dueDate: new Date(), points: 100 }) : null
-                };
-            } catch (e) {
-                console.error(`Error mapping submission ${s._id}:`, e);
-                return s.toObject();
-            }
+            const assId = s.assignmentId?.toString();
+            const data = s.toObject();
+            
+            // Apply cache-busting to the URL
+            data.fileUrl = getSignedUrl(data.fileUrl, data.cloudinaryId);
+
+            return {
+                ...data,
+                assignmentId: assId ? (assignmentMap[assId] || { title: 'Assignment Not Found' }) : null
+            };
         });
 
         res.json(populatedSubmissions);
@@ -142,26 +121,22 @@ const getMySubmissions = async (req, res) => {
     }
 };
 
-/**
- * @desc    Get details of a single submission by its ID
- * @route   GET /api/submissions/:id
- * @access  Private
- */
+// Get details of a single submission by its ID
 const getSubmissionById = async (req, res) => {
     try {
         const submission = await Submission.findById(req.params.id);
-        if (!submission) {
-            return res.status(404).json({ message: 'Submission not found' });
-        }
+        if (!submission) return res.status(404).json({ message: 'Submission not found' });
 
-        // Add student and assignment details manually
         const student = await StudentProfile.findById(submission.studentId).select('name email');
         const assignment = await Assignment.findById(submission.assignmentId).select('title points');
 
-        console.log(`[DEBUG] Submission ${req.params.id} fileUrl: ${submission.fileUrl}`);
+        const data = submission.toObject();
+        // Apply cache-busting to the URL
+        data.fileUrl = getSignedUrl(data.fileUrl, data.cloudinaryId);
+
         res.json({
-            ...submission.toObject(),
-            studentId: student || { name: 'Unknown Student (Account Deleted)', _id: submission.studentId },
+            ...data,
+            studentId: student || { name: 'Unknown Student', _id: submission.studentId },
             assignmentId: assignment || { title: 'Assignment Not Found', points: 100 }
         });
     } catch (error) {

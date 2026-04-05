@@ -11,6 +11,11 @@ const studentProfileSchema = new mongoose.Schema({
         required: true,
         unique: true
     },
+    rollNumber: {
+        type: String,
+        unique: true,
+        sparse: true
+    },
     passwordHash: {
         type: String,
         required: true

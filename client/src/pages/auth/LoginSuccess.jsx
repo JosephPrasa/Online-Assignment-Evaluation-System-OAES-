@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import api from '../../utils/api';
 import { toast } from 'react-toastify';
 
 const LoginSuccess = () => {
@@ -11,29 +12,38 @@ const LoginSuccess = () => {
         if (hasRun.current) return;
         hasRun.current = true;
 
-        const params = new URLSearchParams(location.search);
-        const token = params.get('token');
-        const role = params.get('role');
-        const name = params.get('name'); // Capture name if provided
+        const handleLoginSuccess = async () => {
+            const params = new URLSearchParams(location.search);
+            const token = params.get('token');
+            const role = params.get('role');
 
-        if (token && role) {
-            try {
-                localStorage.setItem('token', token);
-                localStorage.setItem('user', JSON.stringify({ token, role, name: name || 'User' }));
+            if (token && role) {
+                try {
+                    // Temporary store to allow api to work
+                    localStorage.setItem('user', JSON.stringify({ token, role }));
 
-                toast.success('Login Successful!');
+                    // Fetch full info
+                    const { data } = await api.get('/auth/me');
 
-                // Redirect to assignment portal (home page)
-                navigate('/');
-            } catch (error) {
-                console.error('Error during login success handling:', error);
-                toast.error('Authentication failed. Please try again.', { toastId: 'auth-error' });
+                    // Final store
+                    localStorage.setItem('user', JSON.stringify({ ...data, token }));
+
+                    toast.success('Login Successful!');
+
+                    // Redirect to assignment portal (home page)
+                    navigate('/');
+                } catch (error) {
+                    console.error('Error during login success handling:', error);
+                    toast.error('Authentication failed. Please try again.', { toastId: 'auth-error' });
+                    navigate('/login');
+                }
+            } else {
+                toast.error('Invalid login session.', { toastId: 'auth-invalid' });
                 navigate('/login');
             }
-        } else {
-            toast.error('Invalid login session.', { toastId: 'auth-invalid' });
-            navigate('/login');
-        }
+        };
+
+        handleLoginSuccess();
     }, [navigate, location]);
 
     return (

@@ -150,12 +150,19 @@ const EvaluateSubmission = () => {
                             </div>
                         </div>
 
-                        <div className="bg-light rounded-4 p-3 mb-5 d-flex align-items-center">
-                            <i className="bi bi-file-earmark-arrow-down fs-4 text-primary me-3"></i>
+                        <div className="bg-light rounded-4 p-4 mb-5 d-flex align-items-center border">
+                            <div className="rounded-circle bg-white shadow-sm d-flex align-items-center justify-content-center me-3" style={{ width: '50px', height: '50px' }}>
+                                <i className="bi bi-file-earmark-pdf-fill fs-3 text-danger"></i>
+                            </div>
                             <div>
-                                <p className="mb-0 fw-bold small text-dark">Submission File</p>
-                                <a href={submission?.fileUrl} target="_blank" rel="noopener noreferrer" className="text-primary text-decoration-none extra-small fw-medium">
-                                    Download to review offline <i className="bi bi-box-arrow-up-right ms-1"></i>
+                                <p className="mb-0 fw-800 text-dark">Submission Document</p>
+                                <a
+                                    href={submission?.fileUrl?.replace(/^http:/, 'https:')}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-primary text-decoration-none extra-small fw-bold d-flex align-items-center mt-1"
+                                >
+                                    <i className="bi bi-eye-fill me-1"></i> VIEW PDF FULLSCREEN <i className="bi bi-box-arrow-up-right ms-1"></i>
                                 </a>
                             </div>
                         </div>

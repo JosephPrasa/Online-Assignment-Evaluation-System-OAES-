@@ -7,7 +7,6 @@ const Landing = () => {
 
     return (
         <div className="landing-page position-relative overflow-hidden bg-light" style={{ minHeight: '100vh' }}>
-            {/* Hero Section */}
             <div className="container py-5 mt-5">
                 <div className="row align-items-center g-5">
                     <div className="col-lg-6">
@@ -52,7 +51,6 @@ const Landing = () => {
                 </div>
             </div>
 
-            {/* Features Section */}
             <div className="bg-white py-5 mt-5 border-top">
                 <div className="container py-5">
                     <div className="row g-4 text-center">

@@ -127,13 +127,13 @@ const ViewSubmissions = () => {
                                         <td className="text-end pe-4">
                                             <div className="d-flex justify-content-end gap-2">
                                                 <a
-                                                    href={s.fileUrl}
+                                                    href={s.fileUrl?.replace(/^http:/, 'https:')}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="btn btn-sm btn-light rounded-pill px-3 shadow-none border-0"
+                                                    className="btn btn-sm btn-light rounded-pill px-3 shadow-none border-0 fw-bold"
                                                     style={{ fontSize: '0.75rem' }}
                                                 >
-                                                    View File
+                                                    <i className="bi bi-file-earmark-pdf me-1 text-danger"></i> View PDF
                                                 </a>
                                                 <Link
                                                     to={`/faculty/evaluate/${s._id}`}

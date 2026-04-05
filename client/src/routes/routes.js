@@ -2,7 +2,6 @@ import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from '../components/ProtectedRoute';
 
-// Lazy load pages
 const Login = lazy(() => import('../pages/auth/Login'));
 const LoginSuccess = lazy(() => import('../pages/auth/LoginSuccess'));
 const AdminDashboard = lazy(() => import('../pages/admin/AdminDashboard'));

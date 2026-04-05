@@ -4,18 +4,23 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+    secure: true
 });
 
 const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
-    params: {
-        folder: 'oaes_assignments',
-        resource_type: 'auto',
-        public_id: (req, file) => {
-            const name = file.originalname.split('.').slice(0, -1).join('.');
-            return `${name.replace(/\s+/g, '_')}_${Date.now()}`; 
-        }
+    params: async (req, file) => {
+        const name = file.originalname.split('.').slice(0, -1).join('.');
+        const cleanName = name.replace(/\s+/g, '_');
+        
+        return {
+            folder: 'public_assignments',
+            resource_type: 'raw',
+            type: 'upload',
+            access_mode: 'public',
+            public_id: `${cleanName}_${Date.now()}`
+        };
     }
 });
 

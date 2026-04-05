@@ -5,7 +5,7 @@ import { toast } from 'react-toastify';
 
 const MyAssignments = () => {
     const [assignments, setAssignments] = useState([]);
-    const [loading, setLoading] = useState(true);
+
     const [searchTerm, setSearchTerm] = useState('');
     const [viewMode, setViewMode] = useState('card');
 
@@ -13,12 +13,12 @@ const MyAssignments = () => {
         try {
             const { data } = await api.get('/assignments/my');
             setAssignments(data);
-            if (isInitial) setLoading(false);
+
         } catch (err) {
             console.error(err);
             if (isInitial) {
                 toast.error(err.response?.data?.message || 'Failed to fetch assignments');
-                setLoading(false);
+
             }
         }
     };
@@ -101,7 +101,10 @@ const MyAssignments = () => {
                                     filteredAssignments.map((a) => (
                                         <tr key={a._id} className="align-middle">
                                             <td className="ps-4 py-4">
-                                                <div className="fw-800 text-dark">{a.title}</div>
+                                                <div className="fw-800 text-dark d-flex align-items-center">
+                                                    {a.title}
+                                                    {new Date(a.dueDate).setHours(23, 59, 59, 999) < new Date() && <span className="ms-2 badge bg-danger-subtle text-danger rounded-pill" style={{ fontSize: '0.6rem' }}>CLOSED</span>}
+                                                </div>
                                                 <div className="text-muted extra-small fw-bold">ID: {a._id.substring(18)}</div>
                                             </td>
                                             <td>
@@ -109,7 +112,7 @@ const MyAssignments = () => {
                                                     {a.subjectId?.subjectName || 'Generic'}
                                                 </span>
                                             </td>
-                                            <td className="text-muted small fw-medium">
+                                            <td className={`small fw-medium ${new Date(a.dueDate).setHours(23, 59, 59, 999) < new Date() ? 'text-danger' : 'text-muted'}`}>
                                                 {new Date(a.dueDate).toLocaleDateString('en-GB')}
                                             </td>
                                             <td className="fw-800 text-dark small">
@@ -139,13 +142,14 @@ const MyAssignments = () => {
                     {filteredAssignments.length > 0 ? (
                         filteredAssignments.map((a) => (
                             <div className="col-lg-4 col-md-6" key={a._id}>
-                                <div className="analytics-surface p-4 h-100 hover-elevate transition-all border-0 shadow-sm">
+                                <div className={`analytics-surface p-4 h-100 hover-elevate transition-all ${new Date(a.dueDate).setHours(23, 59, 59, 999) < new Date() ? 'border border-danger border-opacity-25 opacity-75' : 'border-0 shadow-sm'}`}>
                                     <div className="d-flex justify-content-between align-items-start mb-4">
                                         <div className="badge-modern-admin" style={{ backgroundColor: '#eff6ff', color: '#2563eb' }}>
                                             {a.subjectId?.subjectName || 'Generic'}
                                         </div>
-                                        <div className="text-muted extra-small fw-bold">
-                                            {a.points} PTS
+                                        <div className="text-muted extra-small fw-bold d-flex flex-column align-items-end gap-1">
+                                            <span>{a.points} PTS</span>
+                                            {new Date(a.dueDate).setHours(23, 59, 59, 999) < new Date() && <span className="badge bg-danger-subtle text-danger rounded-pill" style={{ fontSize: '0.6rem' }}>CLOSED</span>}
                                         </div>
                                     </div>
                                     <h5 className="fw-800 text-dark mb-2">{a.title}</h5>
@@ -161,7 +165,7 @@ const MyAssignments = () => {
                                     </div>
 
                                     <div className="d-flex justify-content-between align-items-center mt-auto">
-                                        <div className="text-muted extra-small fw-bold">
+                                        <div className={`extra-small fw-bold ${new Date(a.dueDate).setHours(23, 59, 59, 999) < new Date() ? 'text-danger' : 'text-muted'}`}>
                                             <i className="bi bi-calendar-event me-1"></i>
                                             {new Date(a.dueDate).toLocaleDateString()}
                                         </div>

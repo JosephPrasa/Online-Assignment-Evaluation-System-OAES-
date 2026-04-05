@@ -37,7 +37,7 @@ const getUsers = async (req, res) => {
 };
 
 const addUser = async (req, res) => {
-    const { name, email, role, enrollmentNumber, staffCode } = req.body;
+    const { name, email, role, enrollmentNumber, staffCode, rollNumber } = req.body;
     let { password } = req.body;
 
     // Use default password if none is provided
@@ -63,7 +63,8 @@ const addUser = async (req, res) => {
             passwordHash,
             role: role || 'student',
             enrollmentNumber,
-            staffCode
+            staffCode,
+            rollNumber: rollNumber && rollNumber.trim() !== "" ? rollNumber.trim() : undefined
         });
 
         // Log that a user was added
@@ -74,14 +75,16 @@ const addUser = async (req, res) => {
             _id: user._id,
             name: user.name,
             email: user.email,
-            role: role || 'student'
+            role: role || 'student',
+            rollNumber: user.rollNumber
         });
 
         res.status(201).json({
             _id: user._id,
             name: user.name,
             email: user.email,
-            role: role || 'student'
+            role: role || 'student',
+            rollNumber: user.rollNumber
         });
     } catch (error) {
         console.error('Error adding user:', error);
@@ -136,7 +139,7 @@ const deleteUser = async (req, res) => {
  * @access  Private/Admin
  */
 const updateUser = async (req, res) => {
-    const { name, email, enrollmentNumber, staffCode } = req.body;
+    const { name, email, enrollmentNumber, staffCode, rollNumber } = req.body;
     try {
         const user = await findUserById(req.params.id);
         if (!user) {
@@ -151,23 +154,25 @@ const updateUser = async (req, res) => {
             }
         }
 
+        const updateRollNumber = rollNumber && rollNumber.trim() !== "" ? rollNumber.trim() : undefined;
+
         let updatedUser;
         if (user.role === 'faculty') {
             updatedUser = await FacultyProfile.findByIdAndUpdate(
                 req.params.id,
-                { name, email, staffCode },
+                { name, email, staffCode, rollNumber: updateRollNumber },
                 { new: true, runValidators: true }
             );
         } else if (user.role === 'student') {
             updatedUser = await StudentProfile.findByIdAndUpdate(
                 req.params.id,
-                { name, email, enrollmentNumber },
+                { name, email, enrollmentNumber, rollNumber: updateRollNumber },
                 { new: true, runValidators: true }
             );
         } else if (user.role === 'admin') {
             updatedUser = await Admin.findByIdAndUpdate(
                 req.params.id,
-                { name, email },
+                { name, email, rollNumber: updateRollNumber },
                 { new: true, runValidators: true }
             );
         }
@@ -186,7 +191,8 @@ const updateUser = async (req, res) => {
             email: updatedUser.email,
             role: user.role,
             enrollmentNumber: updatedUser.enrollmentNumber,
-            staffCode: updatedUser.staffCode
+            staffCode: updatedUser.staffCode,
+            rollNumber: updatedUser.rollNumber
         });
 
         res.json({
@@ -195,7 +201,8 @@ const updateUser = async (req, res) => {
             email: updatedUser.email,
             role: user.role,
             enrollmentNumber: updatedUser.enrollmentNumber,
-            staffCode: updatedUser.staffCode
+            staffCode: updatedUser.staffCode,
+            rollNumber: updatedUser.rollNumber
         });
     } catch (error) {
         console.error('Error updating user:', error);
