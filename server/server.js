@@ -1,4 +1,4 @@
-const path = require("path");
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
@@ -10,7 +10,6 @@ require('./setup/db');
 
 const app = express();
 const passport = require('passport');
-
 
 require('./setup/passport');
 
@@ -40,7 +39,7 @@ app.use(passport.initialize());
 
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 200, // Slightly increased for production
+    max: 200,
     message: 'Too many requests from this IP'
 });
 app.use('/api/', limiter);
@@ -62,21 +61,15 @@ app.use('/api/submissions', submissionRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
-// Static Asset Serving in Production
-if (process.env.NODE_ENV === 'production') {
-    const clientBuildPath = path.join(__dirname, '..', 'client', 'build');
-    app.use(express.static(clientBuildPath));
+// Static Asset Serving (SPA fallback for all non-API routes)
+const clientBuildPath = path.join(__dirname, '..', 'client', 'build');
+app.use(express.static(clientBuildPath));
 
-    app.get('/:path*', (req, res) => {
-        if (!req.path.startsWith('/api')) {
-            res.sendFile(path.join(clientBuildPath, 'index.html'));
-        }
-    });
-} else {
-    app.get('/', (req, res) => {
-        res.send('OAES API is running in development mode...');
-    });
-}
+// Express 5 compatible SPA fallback — must come after all API routes
+app.use((req, res, next) => {
+    if (req.path.startsWith('/api')) return next();
+    res.sendFile(path.join(clientBuildPath, 'index.html'));
+});
 
 app.use((err, req, res, next) => {
     console.error(err.stack);
