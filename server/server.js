@@ -10,14 +10,12 @@ require('./setup/db');
 
 const app = express();
 const passport = require('passport');
-const fastifyStatic = require("@fastify/static");
 
-fastify.register(fastifyStatic, {
-    root: path.join(__dirname, "../client/build"),
-    prefix: "/",
+app.use("*", (req,res)=>{
+    res.sendFile(path.join(__dirname, "../client/build/index.html"));
 });
 
-fastify.setNotFoundHandler((request, reply) => {
+app.setNotFoundHandler((request, reply) => {
     if (request.raw.url.startsWith('/api')) {
         return reply.code(404).send({
             success: false,
