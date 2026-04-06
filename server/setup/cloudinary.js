@@ -16,7 +16,7 @@ const storage = new CloudinaryStorage({
         
         return {
             folder: 'public_assignments',
-            resource_type: 'raw',
+            resource_type: 'auto',
             type: 'upload',
             access_mode: 'public',
             public_id: `${cleanName}_${Date.now()}`

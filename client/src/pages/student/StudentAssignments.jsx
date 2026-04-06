@@ -10,7 +10,19 @@ const StudentAssignments = () => {
         const fetchAssignments = async () => {
             try {
                 const { data } = await api.get('/assignments/subject/ALL');
-                setAssignments(data);
+                const sortedData = data.sort((a, b) => {
+                    const isPastDueA = new Date(a.dueDate).setHours(23, 59, 59, 999) < new Date();
+                    const isPastDueB = new Date(b.dueDate).setHours(23, 59, 59, 999) < new Date();
+
+                    const getPriority = (item, isPastDue) => {
+                        if (!item.isSubmitted && !isPastDue) return 0;
+                        if (item.isSubmitted) return 1;
+                        return 2; // Not submitted and overdue
+                    };
+
+                    return getPriority(a, isPastDueA) - getPriority(b, isPastDueB);
+                });
+                setAssignments(sortedData);
             } catch (err) {
                 console.error(err);
                 toast.error(err.response?.data?.message || 'Failed to fetch assignments');

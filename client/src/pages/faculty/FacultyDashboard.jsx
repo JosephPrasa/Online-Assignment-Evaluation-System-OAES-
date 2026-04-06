@@ -19,7 +19,14 @@ const FacultyDashboard = () => {
     const fetchStats = async (isInitial = false) => {
         try {
             const response = await api.get('/dashboard/faculty');
-            setStats(response.data);
+            const sortedAssignments = response.data.recentAssignments.sort((a, b) => {
+                const isPastDueA = new Date(a.dueDate).setHours(23, 59, 59, 999) < new Date();
+                const isPastDueB = new Date(b.dueDate).setHours(23, 59, 59, 999) < new Date();
+                if (!isPastDueA && isPastDueB) return -1;
+                if (isPastDueA && !isPastDueB) return 1;
+                return new Date(b.createdAt) - new Date(a.createdAt);
+            });
+            setStats({ ...response.data, recentAssignments: sortedAssignments });
         } catch (error) {
             console.error("Error fetching faculty stats:", error);
         }

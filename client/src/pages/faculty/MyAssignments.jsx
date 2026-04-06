@@ -12,7 +12,15 @@ const MyAssignments = () => {
     const fetchAssignments = async (isInitial = false) => {
         try {
             const { data } = await api.get('/assignments/my');
-            setAssignments(data);
+            const sortedData = data.sort((a, b) => {
+                const isPastDueA = new Date(a.dueDate).setHours(23, 59, 59, 999) < new Date();
+                const isPastDueB = new Date(b.dueDate).setHours(23, 59, 59, 999) < new Date();
+
+                if (!isPastDueA && isPastDueB) return -1;
+                if (isPastDueA && !isPastDueB) return 1;
+                return new Date(b.createdAt) - new Date(a.createdAt);
+            });
+            setAssignments(sortedData);
 
         } catch (err) {
             console.error(err);

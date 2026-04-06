@@ -13,30 +13,38 @@ const passport = require('passport');
 
 require('./setup/passport');
 
+// Security Headers with CSP bypass for Cloudinary
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+            "img-src": ["'self'", "data:", "res.cloudinary.com"],
+            "script-src": ["'self'", "'unsafe-inline'"],
+            "connect-src": ["'self'", "res.cloudinary.com", process.env.FRONTEND_URL || "*"]
+        },
+    },
+}));
 
-app.use(helmet());
 app.use(compression());
 app.use(express.json());
-app.use(cors());
+
+// Production CORS Configuration
+const allowedOrigin = process.env.FRONTEND_URL || 'http://localhost:3000';
+app.use(cors({
+    origin: allowedOrigin,
+    credentials: true
+}));
+
 app.use(passport.initialize());
-
-
 
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 100,
-    message: 'Too many requests from this IP, please try again after 15 minutes'
+    max: 200, // Slightly increased for production
+    message: 'Too many requests from this IP'
 });
 app.use('/api/', limiter);
 
-app.get('/api/health', (req, res) => {
-    res.json({ status: 'API is healthy', timestamp: new Date() });
-});
-
-app.get('/', (req, res) => {
-    res.send('Assignment Portal API is running...');
-});
-
+// API Routes
 const authRoutes = require('./routes/authRoutes');
 const subjectRoutes = require('./routes/subjectRoutes');
 const userRoutes = require('./routes/userRoutes');
@@ -52,6 +60,22 @@ app.use('/api/assignments', assignmentRoutes);
 app.use('/api/submissions', submissionRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+
+// Static Asset Serving in Production
+if (process.env.NODE_ENV === 'production') {
+    const clientBuildPath = path.join(__dirname, '..', 'client', 'build');
+    app.use(express.static(clientBuildPath));
+
+    app.get('*', (req, res) => {
+        if (!req.path.startsWith('/api')) {
+            res.sendFile(path.join(clientBuildPath, 'index.html'));
+        }
+    });
+} else {
+    app.get('/', (req, res) => {
+        res.send('Assignment Portal API is running in development mode...');
+    });
+}
 
 app.use((err, req, res, next) => {
     console.error(err.stack);
