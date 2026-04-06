@@ -10,7 +10,6 @@ require('./setup/db');
 
 const app = express();
 const passport = require('passport');
-const __dirname = path.resolve()
 
 app.use(express.static(path.join(__dirname,"../client/build")));
 
