@@ -1,7 +1,6 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const path = require('path');
 dotenv.config({ path: path.join(__dirname, '.env') });
 const helmet = require('helmet');
 const compression = require('compression');
@@ -10,6 +9,25 @@ require('./setup/db');
 
 const app = express();
 const passport = require('passport');
+const fastifyStatic = require("@fastify/static");
+const path = require("path");
+
+fastify.register(fastifyStatic, {
+    root: path.join(__dirname, "../client/build"),
+    prefix: "/",
+});
+
+fastify.setNotFoundHandler((request, reply) => {
+    if (request.raw.url.startsWith('/api')) {
+        return reply.code(404).send({
+            success: false,
+            message: 'API route not found'
+        });
+    }
+
+    // SPA fallback
+    return reply.sendFile('index.html');
+});
 
 require('./setup/passport');
 
@@ -66,7 +84,7 @@ if (process.env.NODE_ENV === 'production') {
     const clientBuildPath = path.join(__dirname, '..', 'client', 'build');
     app.use(express.static(clientBuildPath));
 
-    app.get('*', (req, res) => {
+    app.get('(.*)', (req, res) => {
         if (!req.path.startsWith('/api')) {
             res.sendFile(path.join(clientBuildPath, 'index.html'));
         }
