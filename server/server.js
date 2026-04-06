@@ -10,10 +10,13 @@ require('./setup/db');
 
 const app = express();
 const passport = require('passport');
+const __dirname = path.resolve()
 
-app.use("*", (req,res)=>{
-    res.sendFile(path.join(__dirname, "../client/build/index.html"));
-});
+app.use(express.static(path.join(__dirname,"../client/build")));
+
+    app.get("*",(req,res)=>{
+        res.sendFile(path.join(__dirname,"../client","build","index.html"))
+    });
 
 app.setNotFoundHandler((request, reply) => {
     if (request.raw.url.startsWith('/api')) {
