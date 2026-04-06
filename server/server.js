@@ -1,3 +1,4 @@
+const path = require("path");
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
@@ -10,7 +11,6 @@ require('./setup/db');
 const app = express();
 const passport = require('passport');
 const fastifyStatic = require("@fastify/static");
-const path = require("path");
 
 fastify.register(fastifyStatic, {
     root: path.join(__dirname, "../client/build"),
