@@ -11,23 +11,6 @@ require('./setup/db');
 const app = express();
 const passport = require('passport');
 
-app.use(express.static(path.join(__dirname,"../client/build")));
-
-    app.get("*",(req,res)=>{
-        res.sendFile(path.join(__dirname,"../client","build","index.html"))
-    });
-
-app.setNotFoundHandler((request, reply) => {
-    if (request.raw.url.startsWith('/api')) {
-        return reply.code(404).send({
-            success: false,
-            message: 'API route not found'
-        });
-    }
-
-    // SPA fallback
-    return reply.sendFile('index.html');
-});
 
 require('./setup/passport');
 
@@ -84,7 +67,7 @@ if (process.env.NODE_ENV === 'production') {
     const clientBuildPath = path.join(__dirname, '..', 'client', 'build');
     app.use(express.static(clientBuildPath));
 
-    app.get('(.*)', (req, res) => {
+    app.get('/:path*', (req, res) => {
         if (!req.path.startsWith('/api')) {
             res.sendFile(path.join(clientBuildPath, 'index.html'));
         }
