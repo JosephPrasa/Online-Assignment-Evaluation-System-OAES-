@@ -73,7 +73,7 @@ if (process.env.NODE_ENV === 'production') {
     });
 } else {
     app.get('/', (req, res) => {
-        res.send('Assignment Portal API is running in development mode...');
+        res.send('OAES API is running in development mode...');
     });
 }
 

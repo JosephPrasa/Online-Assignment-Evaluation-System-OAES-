@@ -48,8 +48,12 @@ const Login = () => {
     return (
 
         <div className="container d-flex justify-content-center align-items-center vh-100">
-            <div className="card p-4 shadow-lg" style={{ width: '400px' }}>
-                <h2 className="text-center mb-4">Assignment Portal Login</h2>
+            <div className="card p-5 shadow-lg border-0" style={{ width: '450px', borderRadius: '24px' }}>
+                <div className="text-center mb-5">
+                    <img src="/oaes_logo.jpg" alt="OAES Logo" style={{ width: '80px', height: '80px', marginBottom: '20px', objectFit: 'contain', mixBlendMode: 'multiply' }} />
+                    <h2 className="fw-900 text-dark mb-1">OAES</h2>
+                    <span className="text-muted extra-small fw-bold">Online Evaluation Center</span>
+                </div>
 
                 <form onSubmit={handleLogin}>
                     <div className="mb-3">

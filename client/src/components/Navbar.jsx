@@ -48,6 +48,7 @@ const Navbar = () => {
             <nav className="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm sticky-top" style={{ height: '72px', zIndex: 1040 }}>
                 <div className="container-fluid px-4 px-md-5">
                     <Link to="/" className="navbar-brand d-flex align-items-center text-decoration-none">
+                        <img src="/oaes_logo.jpg" alt="OAES Logo" style={{ width: '45px', height: '45px', marginRight: '12px', objectFit: 'contain', mixBlendMode: 'multiply' }} />
                         <span className="fw-bold text-primary fs-4" style={{ letterSpacing: '-0.02em' }}>OAES</span>
                     </Link>
 
